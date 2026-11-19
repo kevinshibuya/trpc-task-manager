@@ -7,24 +7,34 @@ import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
+
+  // Read from the page when the switch runs, not when the button is clicked:
+  // a second click before the first transition's update has run still flips
+  // the theme back.
+  function switchTheme() {
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "light" : "dark");
+  }
 
   function toggleTheme() {
-    const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
     if (
       typeof document.startViewTransition !== "function" ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
-      setTheme(nextTheme);
+      switchTheme();
       return;
     }
     // The whole page cross-fades once, instead of only the elements that have
     // their own transitions. next-themes applies the class in an effect after
     // the state update, and flushSync runs both before the callback returns,
     // so the new snapshot already shows the new theme.
-    document.startViewTransition(() => {
-      flushSync(() => setTheme(nextTheme));
+    const transition = document.startViewTransition(() => {
+      flushSync(switchTheme);
     });
+    // A second click skips this cross-fade, which rejects `ready`. The theme
+    // still switches, so there is nothing to report.
+    transition.ready.catch(() => {});
   }
 
   return (

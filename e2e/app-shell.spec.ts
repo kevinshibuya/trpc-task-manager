@@ -61,6 +61,38 @@ test("the theme toggle switches the theme inside a view transition", async ({
   expect(classesAfterUpdate[0]).toMatch(/\bdark\b/);
 });
 
+test("two theme clicks in the same frame end on the starting theme", async ({
+  page,
+}) => {
+  // Counts the transitions' updates as they finish. The second click skips
+  // the first cross-fade, and both updates still run.
+  await page.addInitScript(() => {
+    const start = document.startViewTransition.bind(document);
+    Object.assign(window, { updatesDone: 0 });
+    document.startViewTransition = (update) =>
+      start(async () => {
+        if (typeof update === "function") await update();
+        (window as unknown as { updatesDone: number }).updatesDone += 1;
+      });
+  });
+  const html = page.locator("html");
+  await page.goto("/");
+  await expect(html).toHaveClass(/\blight\b/);
+
+  await page
+    .getByRole("button", { name: "Toggle theme" })
+    .evaluate((button: HTMLElement) => {
+      button.click();
+      button.click();
+    });
+
+  await page.waitForFunction(
+    () => (window as unknown as { updatesDone: number }).updatesDone === 2,
+  );
+  await expect(html).toHaveClass(/\blight\b/);
+  await expect(html).not.toHaveClass(/\bdark\b/);
+});
+
 test("inside the theme cross-fade, nothing runs a colour transition of its own", async ({
   page,
 }) => {
