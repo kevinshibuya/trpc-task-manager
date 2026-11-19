@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
 import { SiteHeader } from "@/components/site-header";
@@ -7,8 +6,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { TRPCReactProvider } from "@/trpc/client";
 
 import "./globals.css";
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Task manager",
@@ -22,7 +19,7 @@ export default function RootLayout({
     // next-themes sets the theme class on <html> before React hydrates, so
     // the server HTML cannot know it. The warning is suppressed for this one
     // element only.
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         {/* The theme toggle cross-fades the whole page, so elements do not
             also run their own colour transitions inside it. */}
