@@ -122,7 +122,7 @@ The brief names the task's fields in Portuguese. The code uses English names eve
 
 ## Performance
 
-I measured the production build on an Apple M1 laptop on 19 November 2026, with Node 22.18, Lighthouse 13.6.0 and Chromium 159. The server, the browser and curl ran on the same machine, so no number here includes a real network. The list page held the default 50 sample tasks unless a table says otherwise.
+I measured the production build on an Apple M1 laptop on 19 November 2026, with Node 22.18, Chromium 159 and Lighthouse 13.6.0, which asks for Node 22.19 or later and printed that warning on every run. The server, the browser and curl ran on the same machine, so no number here includes a real network. The list page held the default 50 sample tasks unless a table says otherwise.
 
 ### Page metrics
 
@@ -133,24 +133,24 @@ Desktop, Lighthouse's desktop preset:
 | Metric                   | `/` median | `/` range     | `/tasks/new` median | `/tasks/new` range |
 | ------------------------ | ---------- | ------------- | ------------------- | ------------------ |
 | Performance score        | 100        | 100 to 100    | 100                 | 100 to 100         |
-| First contentful paint   | 211 ms     | 211 to 385 ms | 219 ms              | 211 to 222 ms      |
-| Largest contentful paint | 211 ms     | 211 to 385 ms | 219 ms              | 211 to 222 ms      |
-| Total blocking time      | 0 ms       | 0 to 0 ms     | 0 ms                | 0 to 0 ms          |
+| First contentful paint   | 212 ms     | 211 to 223 ms | 211 ms              | 209 to 217 ms      |
+| Largest contentful paint | 212 ms     | 211 to 223 ms | 211 ms              | 209 to 217 ms      |
+| Total blocking time      | 0 ms       | 0 to 8 ms     | 0 ms                | 0 to 0 ms          |
 | Cumulative layout shift  | 0          | 0 to 0        | 0                   | 0 to 0             |
-| Speed index              | 211 ms     | 211 to 738 ms | 219 ms              | 211 to 500 ms      |
-| Time to interactive      | 211 ms     | 211 to 385 ms | 219 ms              | 211 to 222 ms      |
+| Speed index              | 212 ms     | 211 to 231 ms | 211 ms              | 209 to 217 ms      |
+| Time to interactive      | 212 ms     | 211 to 589 ms | 211 ms              | 209 to 217 ms      |
 
 Mobile, Lighthouse's default emulation, which simulates a slow 4G connection with a 150 ms round trip and about 1.6 Mbit/s down, and slows the CPU four times:
 
 | Metric                   | `/` median | `/` range         | `/tasks/new` median | `/tasks/new` range |
 | ------------------------ | ---------- | ----------------- | ------------------- | ------------------ |
-| Performance score        | 98         | 95 to 100         | 100                 | 99 to 100          |
-| First contentful paint   | 763 ms     | 761 to 770 ms     | 765 ms              | 760 to 779 ms      |
-| Largest contentful paint | 763 ms     | 761 to 770 ms     | 765 ms              | 760 to 779 ms      |
-| Total blocking time      | 171 ms     | 34 to 255 ms      | 80 ms               | 45 to 128 ms       |
+| Performance score        | 100        | 97 to 100         | 100                 | 99 to 100          |
+| First contentful paint   | 759 ms     | 759 to 763 ms     | 767 ms              | 761 to 769 ms      |
+| Largest contentful paint | 759 ms     | 759 to 763 ms     | 767 ms              | 761 to 769 ms      |
+| Total blocking time      | 81 ms      | 42 to 194 ms      | 81 ms               | 79 to 118 ms       |
 | Cumulative layout shift  | 0          | 0 to 0            | 0                   | 0 to 0             |
-| Speed index              | 763 ms     | 761 to 1,472 ms   | 765 ms              | 760 to 779 ms      |
-| Time to interactive      | 2,579 ms   | 2,496 to 2,605 ms | 2,664 ms            | 2,635 to 2,688 ms  |
+| Speed index              | 759 ms     | 759 to 763 ms     | 767 ms              | 761 to 769 ms      |
+| Time to interactive      | 2,527 ms   | 2,449 to 2,653 ms | 2,699 ms            | 2,690 to 2,735 ms  |
 
 ### Script size
 
@@ -158,26 +158,26 @@ The build column is the "First Load JS" table that `pnpm build` prints. The othe
 
 | Route        | First Load JS in the build | Sent by `pnpm start`        | Sent by `pnpm dev`            |
 | ------------ | -------------------------- | --------------------------- | ----------------------------- |
-| `/`          | 186 kB                     | 194 kB, 622 kB uncompressed | 3.77 MB, 15.9 MB uncompressed |
-| `/tasks/new` | 198 kB                     | 237 kB, 763 kB uncompressed | 4.76 MB, 20.0 MB uncompressed |
+| `/`          | 186 kB                     | 194 kB, 623 kB uncompressed | 3.82 MB, 16.1 MB uncompressed |
+| `/tasks/new` | 198 kB                     | 237 kB, 764 kB uncompressed | 4.81 MB, 20.2 MB uncompressed |
 
 After the list page loads, the browser also prefetches about 45 kB of scripts for the new task page, because the page links to it.
 
 ### Server
 
-Each cell is the median and then the 95th percentile of 100 sequential requests, in milliseconds, after 20 warm-up requests. The last page is the page that `nextCursor` reaches at the end of the list. `SAMPLE_TASK_COUNT` has no upper limit. A page holds 20 tasks by default and 100 at most, so the HTML of `/` was 110 kB uncompressed at every count.
+Each cell gives two runs, each on a freshly started server, as the median and then the 95th percentile of 100 sequential requests in milliseconds, after 20 warm-up requests. The last page is the one `nextCursor` reaches at the end of the list. To find it, the walk goes in pages of 100, the largest the API allows, and then in pages of 20. `SAMPLE_TASK_COUNT` has no upper limit. A page holds 20 tasks by default, so the HTML of `/` was 110 kB uncompressed at every count.
 
-| Request                 | 50 tasks   | 1,000 tasks | 10,000 tasks |
-| ----------------------- | ---------- | ----------- | ------------ |
-| List page `/`           | 8.9 / 12.1 | 8.7 / 11.2  | 9.7 / 13.2   |
-| `task.list`, first page | 1.8 / 2.4  | 1.8 / 2.2   | 2.1 / 2.7    |
-| `task.list`, last page  | 1.8 / 3.0  | 1.7 / 2.2   | 2.0 / 2.8    |
+| Request                 | 50 tasks               | 1,000 tasks            | 10,000 tasks           | 100,000 tasks            |
+| ----------------------- | ---------------------- | ---------------------- | ---------------------- | ------------------------ |
+| List page `/`           | 8.5 / 10.9, 8.9 / 11.4 | 8.7 / 11.0, 8.7 / 12.1 | 9.3 / 10.6, 9.2 / 11.1 | 13.1 / 15.5, 12.5 / 14.5 |
+| `task.list`, first page | 1.7 / 1.9, 1.8 / 2.2   | 2.2 / 4.0, 1.8 / 2.2   | 2.0 / 4.1, 2.1 / 2.4   | 5.9 / 7.4, 5.9 / 7.7     |
+| `task.list`, last page  | 1.6 / 2.0, 1.7 / 1.9   | 1.9 / 2.1, 1.8 / 2.2   | 2.0 / 3.3, 2.0 / 2.3   | 4.7 / 5.5, 4.3 / 4.9     |
 
 ### What the numbers say
 
-Both pages draw their content in about 0.2 s on desktop and 0.8 s on the emulated phone, and nothing on them moves after it draws. The cost is hydration. On the emulated phone the list page blocks the main thread for 34 to 255 ms and answers input only at about 2.6 s, so for close to 2 s a reader sees tasks whose buttons don't respond yet. On the server the times barely change up to 10,000 tasks, and a millisecond is within the noise: a second run at 1,000 tasks put the first page's 95th percentile at 5.4 ms. The work still grows with the list, because `InMemoryTaskRepository.listPage` copies, filters and sorts every task on each call, whatever the page, so a much longer list would show it in every request. A database with an index on the creation date and the id would read only the rows of one page.
+Both pages draw their content in about 0.2 s on desktop and 0.8 s on the emulated phone, and nothing on them moves after it draws. The cost is hydration. On the emulated phone Lighthouse counts about 0.9 s of main-thread work for the list page, and the parts of its long tasks beyond 50 ms add up to 42 to 194 ms. The page answers input only at about 2.5 s, so for close to 2 s a reader sees tasks whose buttons don't respond yet. On the server the two runs put every median within 0.7 ms of each other, while the 95th percentile moved by up to 1.8 ms. The times barely change up to 10,000 tasks and grow at 100,000, because `InMemoryTaskRepository.listPage` copies every task into an array and filters it on each call, whatever the page, and then sorts the tasks after the cursor. At 100,000 tasks the first page takes 5.9 ms and the last, which sorts about one page of tasks, 4.3 to 4.7 ms. That difference is the sort. A database with an index on the creation date and the id would read only the rows of one page.
 
-The Running section starts `pnpm dev`, and the development server is not a measure of the application's speed. It sends 3.77 MB of compressed scripts for the list page, 19 times what the production build sends, because development bundles are not minified and carry React's development build. Chrome DevTools' 3G preset downloads at about 400 kbit/s, which makes those scripts take about 75 s, against about 4 s for the production build. The server-rendered HTML arrives long before the scripts do, so on a slow connection the tasks are readable well before the page answers a click. Judge speed with `pnpm build` and `pnpm start`.
+The Running section starts `pnpm dev`, and the development server is not a measure of the application's speed. It sends 3.82 MB of compressed scripts for the list page, about 20 times what the production build sends. Development bundles are not minified, carry React's development build and embed source maps, which are more than half the uncompressed bytes of its three largest chunks. Chrome DevTools' 3G preset downloads at about 400 kbit/s, which makes those scripts take about 76 s, against about 4 s for the production build. The server-rendered HTML arrives long before the scripts do, so on a slow connection the tasks are readable well before the page answers a click. Judge speed with `pnpm build` and `pnpm start`.
 
 ### Reproducing
 
@@ -197,18 +197,27 @@ for i in 1 2 3 4 5; do
 done
 ```
 
-Script size, the compressed bytes of every script the HTML loads. Point `url` at port 3000 to measure `pnpm dev`.
+Each report holds the score at `.categories.performance.score` and each metric at `.audits["<id>"].numericValue`, with the ids `first-contentful-paint`, `largest-contentful-paint`, `total-blocking-time`, `cumulative-layout-shift`, `speed-index`, `interactive` and `mainthread-work-breakdown`. This prints one metric's median and range over the five reports:
+
+```sh
+jq -s 'map(.audits["total-blocking-time"].numericValue) | sort | {min: .[0], median: .[2], max: .[4]}' list-mobile-*.json
+```
+
+Script size, the compressed and the uncompressed bytes of every script the HTML loads. Set `page=/tasks/new` for the form page, and point `url` at port 3000 to measure `pnpm dev`.
 
 ```sh
 url=http://localhost:3200
-curl -s "$url/" | grep -oE '<script[^>]+src="[^"]+"[^>]*>' | grep -v noModule |
+page=/
+curl -s "$url$page" | grep -oE '<script[^>]+src="[^"]+"[^>]*>' | grep -v noModule |
   grep -oE '/_next/[^"]+' | sed 's/&amp;/\&/g' | sort -u |
   while read -r src; do
-    curl -s -o /dev/null -H 'Accept-Encoding: gzip, deflate, br, zstd' -w '%{size_download}\n' "$url$src"
-  done | awk '{ total += $1 } END { print total }'
+    gz=$(curl -s -o /dev/null -H 'Accept-Encoding: gzip, deflate, br, zstd' -w '%{size_download}' "$url$src")
+    raw=$(curl -s -o /dev/null -H 'Accept-Encoding: identity' -w '%{size_download}' "$url$src")
+    echo "$gz $raw"
+  done | awk '{ gz += $1; raw += $2 } END { print gz " compressed, " raw " uncompressed" }'
 ```
 
-Server timings, with the server restarted at each `SAMPLE_TASK_COUNT`. The loop that finds the last page needs `jq`.
+Server timings, with the server restarted at each `SAMPLE_TASK_COUNT`, twice. The loop that finds the last page needs `jq`.
 
 ```sh
 url=http://localhost:3200
@@ -221,13 +230,16 @@ time_requests "$url/"
 time_requests "$url/api/trpc/task.list?input=%7B%22json%22%3A%7B%7D%7D"
 
 api="$url/api/trpc/task.list"
-input='{"json":{}}'
-while :; do
-  next=$(curl -s -G "$api" --data-urlencode "input=$input" | jq -r '.result.data.json.nextCursor')
-  [ "$next" = null ] && break
-  input="{\"json\":{\"cursor\":\"$next\"}}"
+cursor=""
+for limit in 100 20; do
+  while :; do
+    input="{\"json\":{\"limit\":$limit${cursor:+,\"cursor\":\"$cursor\"}}}"
+    next=$(curl -s -G "$api" --data-urlencode "input=$input" | jq -r '.result.data.json.nextCursor')
+    [ "$next" = null ] && break
+    cursor=$next
+  done
 done
-time_requests "$api?input=$(jq -rn --arg v "$input" '$v|@uri')"
+time_requests "$api?input=$(jq -rn --arg c "$cursor" '{json: {cursor: $c}} | tojson | @uri')"
 ```
 
 ## Limits and next steps
