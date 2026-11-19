@@ -7,29 +7,35 @@ import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 
-/** The top row: a way back to the list on every other page, and the theme toggle. */
+/**
+ * The top row: a way back to the list and the theme toggle on every other
+ * page. On the list it stays, empty and at its height, so the title sits
+ * where it does on the other pages; the toggle is in the list's title row.
+ */
 export function SiteHeader() {
   const onList = usePathname() === "/";
 
   return (
     <header className="flex h-14 items-center gap-4">
       {onList ? null : (
-        // The negative margin lines the chevron up with the title below it.
-        <Link
-          href="/"
-          className={buttonVariants({
-            variant: "ghost",
-            size: "icon",
-            className: "-ml-1.5 text-muted-foreground",
-          })}
-        >
-          <ChevronLeftIcon className="size-5" aria-hidden />
-          <span className="sr-only">Back to tasks</span>
-        </Link>
+        <>
+          {/* The negative margin lines the chevron up with the title below it. */}
+          <Link
+            href="/"
+            className={buttonVariants({
+              variant: "ghost",
+              size: "icon",
+              className: "-ml-1.5 text-muted-foreground",
+            })}
+          >
+            <ChevronLeftIcon className="size-5" aria-hidden />
+            <span className="sr-only">Back to tasks</span>
+          </Link>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
+        </>
       )}
-      <div className="ml-auto">
-        <ThemeToggle />
-      </div>
     </header>
   );
 }

@@ -1,15 +1,34 @@
 import { expect, test } from "./fixtures";
 
-test("the home page shows the header with the theme toggle and no way back", async ({
+test("the home page has the theme toggle beside New task and an empty top row at its height", async ({
   page,
 }) => {
+  await page.goto("/tasks/new");
+  const titleTopElsewhere = (
+    await page.getByRole("heading", { level: 1 }).boundingBox()
+  )?.y;
   await page.goto("/");
 
   const header = page.getByRole("banner");
-  await expect(
-    header.getByRole("button", { name: "Toggle theme" }),
-  ).toBeVisible();
-  await expect(header.getByRole("link")).toHaveCount(0);
+  await expect(header).toBeEmpty();
+  const main = page.getByRole("main");
+  const newTask = await main
+    .getByRole("link", { name: "New task" })
+    .boundingBox();
+  const toggle = await main
+    .getByRole("button", { name: "Toggle theme" })
+    .boundingBox();
+  if (!newTask || !toggle) throw new Error("A title row action has no box.");
+  // On the same line, centred with each other, the toggle to the right.
+  expect(toggle.y + toggle.height / 2).toBeCloseTo(
+    newTask.y + newTask.height / 2,
+    0,
+  );
+  expect(toggle.x).toBeGreaterThan(newTask.x + newTask.width);
+  // The empty top row keeps the title where the other pages have theirs.
+  expect((await page.getByRole("heading", { level: 1 }).boundingBox())?.y).toBe(
+    titleTopElsewhere,
+  );
 });
 
 test("another page's header leads back to the task list", async ({ page }) => {

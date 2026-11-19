@@ -57,7 +57,9 @@ afterEach(() => {
   Reflect.deleteProperty(document, "startViewTransition");
 });
 
+/** Renders the header of a page other than the list, where it has the toggle. */
 function renderLightHeader() {
+  pathname = "/tasks/new";
   render(
     <ThemeProvider attribute="class" defaultTheme="light">
       <SiteHeader />
@@ -67,13 +69,10 @@ function renderLightHeader() {
 }
 
 describe("SiteHeader", () => {
-  it("shows only the theme toggle on the task list", () => {
+  it("is empty on the task list, whose title row has the theme toggle", () => {
     render(<SiteHeader />);
 
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Toggle theme" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toBeEmptyDOMElement();
   });
 
   it("offers a way back to the task list on every other page", () => {
