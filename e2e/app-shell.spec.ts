@@ -93,6 +93,61 @@ test("two theme clicks in the same frame end on the starting theme", async ({
   await expect(html).not.toHaveClass(/\bdark\b/);
 });
 
+test("a second theme click during the cross-fade switches the theme back", async ({
+  page,
+}) => {
+  // Notes, for each press of the mouse, whether a transition was running, so
+  // the test knows the second click landed inside one. From the start of a
+  // transition to its end, the browser sends every click to <html>.
+  await page.addInitScript(() => {
+    const start = document.startViewTransition.bind(document);
+    const seen = { running: 0, pressesWhileFading: [] as boolean[] };
+    Object.assign(window, { seen });
+    document.startViewTransition = (update) => {
+      const transition = start(update);
+      seen.running += 1;
+      const end = () => (seen.running -= 1);
+      transition.finished.then(end, end);
+      return transition;
+    };
+    window.addEventListener(
+      "pointerdown",
+      () => seen.pressesWhileFading.push(seen.running > 0),
+      { capture: true },
+    );
+  });
+  const html = page.locator("html");
+  await page.goto("/");
+  await expect(html).toHaveClass(/\blight\b/);
+  // A slower fade than the page's, so a loaded machine still presses inside
+  // it. The page takes clicks the same way at any speed.
+  await page.addStyleTag({
+    content:
+      "::view-transition-old(root), ::view-transition-new(root) { animation-duration: 1s !important; }",
+  });
+
+  // Real presses at the button's position, so they go through hit testing
+  // the way a person's clicks do.
+  const box = await page
+    .getByRole("button", { name: "Toggle theme" })
+    .boundingBox();
+  if (!box) throw new Error("The theme toggle has no box.");
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(75);
+  await page.mouse.click(x, y);
+
+  const presses = await page.evaluate(
+    () =>
+      (window as unknown as { seen: { pressesWhileFading: boolean[] } }).seen
+        .pressesWhileFading,
+  );
+  expect(presses).toEqual([false, true]);
+  await expect(html).toHaveClass(/\blight\b/);
+  await expect(html).not.toHaveClass(/\bdark\b/);
+});
+
 test("inside the theme cross-fade, nothing runs a colour transition of its own", async ({
   page,
 }) => {

@@ -32,7 +32,7 @@ function stubViewTransitions() {
   const startViewTransition = vi.fn((update: () => void) => {
     update();
     classesAfterUpdate.push(document.documentElement.className);
-    return { ready: Promise.resolve() };
+    return { ready: Promise.resolve(), finished: Promise.resolve() };
   });
   Object.defineProperty(document, "startViewTransition", {
     configurable: true,

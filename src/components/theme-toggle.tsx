@@ -2,12 +2,14 @@
 
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useRef } from "react";
 import { flushSync } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Read from the page when the switch runs, not when the button is clicked:
   // a second click before the first transition's update has run still flips
@@ -35,10 +37,32 @@ export function ThemeToggle() {
     // A second click skips this cross-fade, which rejects `ready`. The theme
     // still switches, so there is nothing to report.
     transition.ready.catch(() => {});
+
+    // While the page fades, the browser draws it from snapshots and sends
+    // every click to <html>, never to the button, whatever `pointer-events`
+    // the snapshots have. A click that lands on the button's box during the
+    // fade still switches the theme back.
+    function clickThrough(event: MouseEvent) {
+      const box = buttonRef.current?.getBoundingClientRect();
+      if (
+        event.target === document.documentElement &&
+        box &&
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom
+      ) {
+        toggleTheme();
+      }
+    }
+    document.addEventListener("click", clickThrough);
+    const stopClickThrough = () =>
+      document.removeEventListener("click", clickThrough);
+    transition.finished.then(stopClickThrough, stopClickThrough);
   }
 
   return (
-    <Button variant="ghost" size="icon" onClick={toggleTheme}>
+    <Button ref={buttonRef} variant="ghost" size="icon" onClick={toggleTheme}>
       {/* The icons switch through the `dark` class, not through
           `resolvedTheme`, so the server HTML and the first client render
           match whatever theme the browser picks. */}
