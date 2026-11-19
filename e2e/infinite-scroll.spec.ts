@@ -120,13 +120,26 @@ test("a page that fails to load offers a retry and keeps the tasks shown", async
   await expect(alert).toBeVisible();
   await expect(rows(page)).toHaveCount(PAGE_SIZE);
 
+  // The retried request is held, so the test can see the list while it loads.
   await page.unrouteAll();
+  let releaseRetry!: () => void;
+  const retryHeld = new Promise<void>((resolve) => {
+    releaseRetry = resolve;
+  });
+  await page.route("**/api/trpc/task.list?**", async (route) => {
+    await retryHeld;
+    await route.continue();
+  });
   const retried = page.waitForRequest(
     (request) => listCursor(request) === failedCursors[0],
   );
   await alert.getByRole("button", { name: "Retry" }).click();
   await retried;
 
+  await expect(page.locator("main [data-slot=skeleton]").first()).toBeVisible();
+  await expect(alert).toBeHidden();
+
+  releaseRetry();
   await expect.poll(() => rows(page).count()).toBeGreaterThan(PAGE_SIZE);
   await expect(alert).toBeHidden();
 });

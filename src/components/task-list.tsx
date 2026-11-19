@@ -124,7 +124,9 @@ export function TaskList() {
         ))}
       </ItemGroup>
 
-      {isFetchNextPageError ? (
+      {/* A retry keeps the error until it settles, so the alert waits for
+          the retry to fail and the skeletons show while it runs. */}
+      {isFetchNextPageError && !isFetchingNextPage ? (
         <Alert variant="destructive">
           <CircleAlertIcon />
           <AlertTitle>More tasks could not be loaded</AlertTitle>
