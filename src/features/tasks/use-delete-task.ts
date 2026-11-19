@@ -3,17 +3,55 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import type { TaskPage } from "@/server/tasks/task";
 import { useTRPC } from "@/trpc/client";
 import { taskListInput } from "@/trpc/task-list-query";
 
 import { describeError } from "./describe-error";
 
 /**
+ * The list as it is now, with one task put back where `before` had it.
+ * Putting `before` back whole would also undo every delete confirmed after
+ * the one that failed.
+ */
+function putBack<List extends { pages: TaskPage[] }>(
+  now: List,
+  before: List,
+  id: string,
+): List {
+  // A list fetched in the meantime may already hold it.
+  if (now.pages.some((page) => page.items.some((task) => task.id === id))) {
+    return now;
+  }
+  return {
+    ...now,
+    pages: now.pages.map((page, pageIndex) => {
+      const items = before.pages[pageIndex]?.items ?? [];
+      const index = items.findIndex((task) => task.id === id);
+      if (index === -1) return page;
+      // Before the first task that used to follow it and is still shown.
+      const following = items.slice(index + 1).map((task) => task.id);
+      const next = page.items.findIndex((task) => following.includes(task.id));
+      const at = next === -1 ? page.items.length : next;
+      return {
+        ...page,
+        items: [
+          ...page.items.slice(0, at),
+          items[index],
+          ...page.items.slice(at),
+        ],
+      };
+    }),
+  };
+}
+
+/**
  * Deletes a task optimistically. The task leaves the cached list the moment
- * the person confirms, so the list never waits on the server. The cache as it
- * was is kept, and a failed delete puts it back at once, with the task in its
- * old place, before the refetch that follows can answer. The list is
- * revalidated either way, so the server has the last word.
+ * the person confirms, so the list never waits on the server. A failed delete
+ * puts that one task back in its old place at once, before the refetch that
+ * follows can answer, and leaves out the tasks of other deletes still pending.
+ * The list is revalidated once the last overlapping delete settles, so the
+ * server has the last word.
  */
 export function useDeleteTask() {
   const trpc = useTRPC();
@@ -42,18 +80,31 @@ export function useDeleteTask() {
       onSuccess() {
         toast.success("Task deleted.");
       },
-      onError(error, _input, context) {
-        if (context?.previous) {
-          queryClient.setQueryData(listKey, context.previous);
+      onError(error, { id }, context) {
+        const previous = context?.previous;
+        if (previous) {
+          queryClient.setQueryData(listKey, (current) =>
+            current ? putBack(current, previous, id) : previous,
+          );
         }
         toast.error("The task could not be deleted.", {
           description: describeError(error).message,
         });
       },
       onSettled() {
-        return queryClient.invalidateQueries({
-          queryKey: trpc.task.list.pathKey(),
-        });
+        // While another delete is pending, its task is out of the cached list
+        // but maybe not out of the server yet, so a list fetched now could
+        // bring it back. The last delete to settle revalidates for all of
+        // them. This one still counts as pending here, so 1 means no other is.
+        if (
+          queryClient.isMutating({
+            mutationKey: trpc.task.delete.mutationKey(),
+          }) === 1
+        ) {
+          return queryClient.invalidateQueries({
+            queryKey: trpc.task.list.pathKey(),
+          });
+        }
       },
     }),
   );
