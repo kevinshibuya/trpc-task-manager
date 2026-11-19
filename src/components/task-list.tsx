@@ -29,7 +29,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { describeError } from "@/lib/describe-error";
+import { describeError } from "@/features/tasks/describe-error";
 import { useTRPC } from "@/trpc/client";
 import { getNextTaskListPage, taskListInput } from "@/trpc/task-list-query";
 
@@ -113,7 +113,7 @@ export function TaskList() {
         <Alert variant="destructive">
           <CircleAlertIcon />
           <AlertTitle>More tasks could not be loaded</AlertTitle>
-          <AlertDescription>{describeError(error)}</AlertDescription>
+          <AlertDescription>{describeError(error).message}</AlertDescription>
           <AlertAction>
             <Button
               size="sm"

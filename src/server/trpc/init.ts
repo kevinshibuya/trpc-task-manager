@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { ZodError } from "zod";
+import { flattenError, ZodError } from "zod";
 
 import { InvalidCursorError } from "@/server/tasks/errors";
 import type { TaskService } from "@/server/tasks/task-service";
@@ -21,7 +21,16 @@ const t = initTRPC.context<Context>().create({
       return { ...shape, message: INTERNAL_ERROR_MESSAGE };
     }
     if (error.cause instanceof ZodError) {
-      return { ...shape, message: "Some of the values sent are not valid." };
+      return {
+        ...shape,
+        message: "Some of the values sent are not valid.",
+        // The messages grouped by field, so the form can show each one next
+        // to its field: `{ title: ["Enter a title."] }`.
+        data: {
+          ...shape.data,
+          fieldErrors: flattenError(error.cause).fieldErrors,
+        },
+      };
     }
     return shape;
   },

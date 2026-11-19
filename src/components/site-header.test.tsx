@@ -25,12 +25,16 @@ beforeEach(() => {
 });
 
 describe("SiteHeader", () => {
-  it("shows the application name and a theme toggle", () => {
+  it("shows the application name, a New task action and a theme toggle", () => {
     render(<SiteHeader />);
 
     expect(screen.getByRole("link", { name: "Task manager" })).toHaveAttribute(
       "href",
       "/",
+    );
+    expect(screen.getByRole("link", { name: "New task" })).toHaveAttribute(
+      "href",
+      "/tasks/new",
     );
     expect(
       screen.getByRole("button", { name: "Toggle theme" }),

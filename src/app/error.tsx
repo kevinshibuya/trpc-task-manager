@@ -6,7 +6,7 @@ import { useTransition } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { describeError } from "@/lib/describe-error";
+import { describeError } from "@/features/tasks/describe-error";
 
 export default function ErrorPage({
   error,
@@ -31,7 +31,7 @@ export default function ErrorPage({
       <Alert variant="destructive">
         <CircleAlertIcon />
         <AlertTitle>This page could not be loaded</AlertTitle>
-        <AlertDescription>{describeError(error)}</AlertDescription>
+        <AlertDescription>{describeError(error).message}</AlertDescription>
       </Alert>
       <Button variant="outline" onClick={retry} disabled={retrying}>
         Try again
