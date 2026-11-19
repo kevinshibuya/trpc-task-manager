@@ -59,7 +59,9 @@ export function TaskList() {
   // Here and not in the row, which leaves the list as soon as the delete starts.
   const { mutate: deleteTask } = useDeleteTask();
 
-  // The sentinel is watched only while another page can be asked for.
+  // The skeleton rows are the sentinel. They are watched only while another
+  // page can be asked for, and their whole height counts, so a viewport
+  // shorter than them still sees them at the end of the list.
   const sentinelRef = useRef<HTMLDivElement>(null);
   const canLoadMore =
     hasNextPage && !isFetchingNextPage && !isFetchNextPageError;
@@ -145,8 +147,7 @@ export function TaskList() {
         // The skeletons are in the server HTML too, so a person who scrolls to
         // the end before the scripts load sees that more is coming. They stay
         // while the page loads, and its rows take their place.
-        <div>
-          <div ref={sentinelRef} />
+        <div ref={sentinelRef}>
           <TaskRowSkeletons />
         </div>
       ) : null}

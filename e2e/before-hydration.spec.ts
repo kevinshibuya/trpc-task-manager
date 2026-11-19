@@ -45,6 +45,29 @@ test("the list ends with skeleton rows before hydration, and the next page repla
   await expect.poll(() => rows(page).count()).toBeGreaterThan(PAGE_SIZE);
 });
 
+test.describe("in a viewport shorter than the skeleton rows", () => {
+  test.use({ viewport: { width: 1280, height: 200 } });
+
+  test("scrolling to the end before hydration still loads the next page", async ({
+    page,
+  }) => {
+    const release = await holdScripts(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    await expect(rows(page)).toHaveCount(PAGE_SIZE);
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    await expect(
+      page.locator("main [data-slot=skeleton]").last(),
+    ).toBeInViewport();
+
+    release();
+
+    await expect.poll(() => rows(page).count()).toBeGreaterThan(PAGE_SIZE);
+  });
+});
+
 test("Save is disabled until the form has hydrated", async ({ page }) => {
   const release = await holdScripts(page);
   await page.goto("/tasks/new", { waitUntil: "domcontentloaded" });
