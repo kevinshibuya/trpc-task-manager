@@ -192,3 +192,30 @@ test("a failed delete comes back alone while a later delete is pending, and the 
   await expect(taskRow(page, refused)).toHaveCount(1);
   await expect(taskRow(page, pending)).toHaveCount(0);
 });
+
+test("deleting while offline brings the row back with the connection message", async ({
+  page,
+  request,
+  context,
+  allowError,
+}) => {
+  // The browser logs the delete that cannot leave, and Next.js logs the
+  // prefetch of the restored row's edit link.
+  allowError(/ERR_INTERNET_DISCONNECTED|ERR_FAILED/);
+  allowError(/Failed to fetch RSC payload/);
+  const title = uniqueTitle("Offline");
+  await createTask(request, title);
+  await page.goto("/");
+  await expect(taskRow(page, title)).toHaveCount(1);
+
+  await context.setOffline(true);
+  await confirmDelete(page, title);
+
+  await expect(page.getByText("The task could not be deleted.")).toBeVisible();
+  await expect(page.getByText(/server could not be reached/)).toBeVisible();
+  await expect(taskRow(page, title)).toHaveCount(1);
+
+  await context.setOffline(false);
+  await page.reload();
+  await expect(taskRow(page, title)).toHaveCount(1);
+});

@@ -11,6 +11,12 @@ export function makeQueryClient() {
         // A failure reaches the person at once instead of after silent retries.
         retry: false,
       },
+      mutations: {
+        // Offline, a change fails at once with the connection message instead
+        // of waiting, unseen, for the network to come back: a row deleted
+        // offline returns, and a form stops saving.
+        networkMode: "always",
+      },
       // The server sends its query cache with the HTML. superjson keeps the
       // dates inside it dates.
       dehydrate: { serializeData: superjson.serialize },
