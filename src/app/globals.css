@@ -154,4 +154,11 @@
     /* Short pages keep the scrollbar's space, so the column does not slide. */
     scrollbar-gutter: stable;
   }
+  /* An open dialog locks the scroll, which hides the scrollbar and keeps its
+     gutter. No fixed element paints there, only the page's background colour,
+     so that colour takes the backdrop's 10% black while the dialog is open,
+     and the backdrop reaches the window's edge. */
+  html:has([data-slot="alert-dialog-overlay"]) {
+    background-color: color-mix(in srgb, var(--background) 90%, black);
+  }
 }
