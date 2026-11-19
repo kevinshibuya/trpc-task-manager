@@ -76,3 +76,51 @@ test.describe("for a viewer in another time zone than the server", () => {
     await page.waitForLoadState("networkidle");
   });
 });
+
+for (const viewport of [
+  { width: 1280, height: 720 },
+  { width: 390, height: 844 },
+]) {
+  test.describe(`at ${viewport.width} px wide`, () => {
+    test.use({ viewport });
+
+    test("a row with a long title and description with no spaces keeps clear of its actions", async ({
+      page,
+      request,
+    }) => {
+      // 120 wide characters with no space, the longest title the form accepts.
+      const title =
+        `W${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+          .toUpperCase()
+          .padEnd(120, "W");
+      const response = await request.post("/api/trpc/task.create", {
+        data: { json: { title, description: "M".repeat(300) } },
+      });
+      expect(response.status()).toBe(200);
+      await page.goto("/");
+
+      const row = page
+        .getByRole("list", { name: "Tasks" })
+        .getByRole("listitem")
+        .filter({ hasText: title });
+      const { contentRight, actionsLeft, sideScroll } = await row.evaluate(
+        (item) => ({
+          contentRight: Math.max(
+            ...[...item.querySelectorAll("[data-slot^=item-]")]
+              .filter((e) => !e.closest("[data-slot=item-actions]"))
+              .map((e) => e.getBoundingClientRect().right),
+          ),
+          actionsLeft: item
+            .querySelector("[data-slot=item-actions]")!
+            .getBoundingClientRect().left,
+          sideScroll:
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth,
+        }),
+      );
+
+      expect(contentRight).toBeLessThanOrEqual(actionsLeft);
+      expect(sideScroll).toBeLessThanOrEqual(0);
+    });
+  });
+}

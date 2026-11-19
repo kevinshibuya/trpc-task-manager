@@ -103,10 +103,14 @@ export function TaskList() {
       <ItemGroup aria-label="Tasks" aria-busy={isFetchingNextPage}>
         {tasks.map((task) => (
           <Item key={task.id} role="listitem" variant="outline">
-            <ItemContent>
-              <ItemTitle>{task.title}</ItemTitle>
+            {/* A long word breaks anywhere, so it stays clear of the actions
+                and the page never scrolls sideways. */}
+            <ItemContent className="min-w-0">
+              <ItemTitle className="wrap-anywhere">{task.title}</ItemTitle>
               {task.description ? (
-                <ItemDescription>{task.description}</ItemDescription>
+                <ItemDescription className="wrap-anywhere">
+                  {task.description}
+                </ItemDescription>
               ) : null}
               <CreationDate date={task.createdAt} />
             </ItemContent>
