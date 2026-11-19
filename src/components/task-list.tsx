@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/empty";
 import {
   Item,
+  ItemActions,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -103,6 +104,14 @@ export function TaskList() {
               ) : null}
               <CreationDate date={task.createdAt} />
             </ItemContent>
+            <ItemActions>
+              <Link
+                href={`/tasks/${task.id}/edit`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Edit<span className="sr-only"> {task.title}</span>
+              </Link>
+            </ItemActions>
           </Item>
         ))}
       </ItemGroup>

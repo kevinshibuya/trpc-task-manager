@@ -8,3 +8,10 @@ export class InvalidCursorError extends Error {
     this.name = "InvalidCursorError";
   }
 }
+
+export class TaskNotFoundError extends Error {
+  constructor() {
+    super("The task was not found. It may have been deleted.");
+    this.name = "TaskNotFoundError";
+  }
+}

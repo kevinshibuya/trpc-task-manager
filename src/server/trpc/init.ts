@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { flattenError, ZodError } from "zod";
 
-import { InvalidCursorError } from "@/server/tasks/errors";
+import { InvalidCursorError, TaskNotFoundError } from "@/server/tasks/errors";
 import type { TaskService } from "@/server/tasks/task-service";
 
 /** What every procedure receives. Tests pass a service over a fresh repository. */
@@ -36,6 +36,13 @@ const t = initTRPC.context<Context>().create({
   },
 });
 
+/** The transport code of each domain error. */
+function transportCode(error: unknown): TRPCError["code"] | undefined {
+  if (error instanceof InvalidCursorError) return "BAD_REQUEST";
+  if (error instanceof TaskNotFoundError) return "NOT_FOUND";
+  return undefined;
+}
+
 /**
  * The one place where domain errors become transport errors. Anything it
  * does not recognise stays an internal error, whose message the formatter
@@ -43,12 +50,12 @@ const t = initTRPC.context<Context>().create({
  */
 const translateDomainErrors = t.middleware(async ({ next }) => {
   const result = await next();
-  if (!result.ok && result.error.cause instanceof InvalidCursorError) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: result.error.cause.message,
-      cause: result.error.cause,
-    });
+  if (!result.ok) {
+    const { cause } = result.error;
+    const code = transportCode(cause);
+    if (code && cause) {
+      throw new TRPCError({ code, message: cause.message, cause });
+    }
   }
   return result;
 });

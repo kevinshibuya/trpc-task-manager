@@ -56,3 +56,8 @@ export const taskInput = z.object({
 
 /** What a caller sends: untrimmed text, the description optional. */
 export type TaskInput = z.input<typeof taskInput>;
+
+export const taskIdInput = z.object({ id: z.string() });
+
+/** The task to update and its new editable fields. */
+export const updateTaskInput = taskInput.extend(taskIdInput.shape);

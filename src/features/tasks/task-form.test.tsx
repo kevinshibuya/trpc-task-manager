@@ -1,10 +1,12 @@
 import { TRPCClientError } from "@trpc/client";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   recordedInternalError,
+  recordedNotFoundError,
   recordedValidationError,
 } from "@/server/trpc/recorded-errors";
 
@@ -113,6 +115,39 @@ describe("TaskForm", () => {
     expect(title).toHaveValue("Wash the windows");
   });
 
+  it("shows a save that finds the task gone inside the form, with a link back to the list", async () => {
+    const onSave = vi.fn(() =>
+      Promise.reject(TRPCClientError.from({ error: recordedNotFoundError })),
+    );
+    const { user, form, title, submit } = renderForm(onSave);
+
+    await user.type(title, "Oil the hinge");
+    await user.click(submit);
+
+    const alert = await within(form).findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "The task was not found. It may have been deleted.",
+    );
+    expect(
+      within(alert).getByRole("link", { name: "Back to the list" }),
+    ).toHaveAttribute("href", "/");
+  });
+
+  it("does not offer the way back to the list for a failure worth retrying", async () => {
+    const onSave = vi.fn(() =>
+      Promise.reject(TRPCClientError.from({ error: recordedInternalError })),
+    );
+    const { user, form, title, submit } = renderForm(onSave);
+
+    await user.type(title, "Oil the hinge");
+    await user.click(submit);
+
+    const alert = await within(form).findByRole("alert");
+    expect(
+      within(alert).queryByRole("link", { name: "Back to the list" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("starts with the values it is given", () => {
     render(
       <TaskForm
@@ -128,6 +163,24 @@ describe("TaskForm", () => {
     expect(screen.getByRole("textbox", { name: /Description/ })).toHaveValue(
       "Kitchen door.",
     );
+  });
+
+  it("has the values it is given in its server-rendered markup", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(
+      <TaskForm
+        submitLabel="Save changes"
+        defaultValues={{ title: "Oil the hinge", description: "Kitchen door." }}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(
+      within(container).getByRole("textbox", { name: "Title" }),
+    ).toHaveValue("Oil the hinge");
+    expect(
+      within(container).getByRole("textbox", { name: /Description/ }),
+    ).toHaveValue("Kitchen door.");
   });
 
   it("offers a way back to the list without saving", () => {

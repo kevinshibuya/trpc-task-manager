@@ -16,6 +16,16 @@ export const recordedValidationError = {
   },
 };
 
+export const recordedNotFoundError = {
+  code: -32004,
+  message: "The task was not found. It may have been deleted.",
+  data: {
+    code: "NOT_FOUND",
+    httpStatus: 404,
+    path: "task.update",
+  },
+};
+
 export const recordedInternalError = {
   code: -32603,
   message: "Something went wrong on the server. Please try again.",

@@ -8,6 +8,8 @@ export type DescribedError = {
    * to each field. Empty when the failure is not about a field.
    */
   fieldErrors: Record<string, string>;
+  /** The server no longer has what the call asked for, so retrying won't help. */
+  notFound: boolean;
 };
 
 /**
@@ -22,23 +24,27 @@ export function describeError(error: unknown): DescribedError {
         message:
           "The server could not be reached. Check your connection and try again.",
         fieldErrors: {},
+        notFound: false,
       };
     }
     if (code === "INTERNAL_SERVER_ERROR") {
       return {
         message: "Something went wrong on the server. Please try again.",
         fieldErrors: {},
+        notFound: false,
       };
     }
     // The server writes the other messages for people.
     return {
       message: error.message,
       fieldErrors: readFieldErrors(error.data?.fieldErrors),
+      notFound: code === "NOT_FOUND",
     };
   }
   return {
     message: "Something went wrong. Please try again.",
     fieldErrors: {},
+    notFound: false,
   };
 }
 

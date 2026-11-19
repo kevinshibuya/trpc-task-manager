@@ -1,4 +1,5 @@
 import { decodeCursor, encodeCursor } from "./cursor";
+import { TaskNotFoundError } from "./errors";
 import {
   DEFAULT_PAGE_SIZE,
   type ListTasksInput,
@@ -38,6 +39,33 @@ export function createTaskService(
         createdAt: clock(),
       };
       await repository.add(task);
+      return task;
+    },
+
+    /** The task with this id. Throws `TaskNotFoundError`. */
+    async getById(id: string): Promise<Task> {
+      const task = await repository.findById(id);
+      if (!task) throw new TaskNotFoundError();
+      return task;
+    },
+
+    /**
+     * Replaces the title and the description together, under the rules of
+     * `create`: leaving the description out clears it. The id and the creation
+     * date never change. Throws a `ZodError` for invalid input and
+     * `TaskNotFoundError` for an unknown id.
+     */
+    async update(id: string, input: TaskInput): Promise<Task> {
+      const { title, description } = taskInput.parse(input);
+      const current = await repository.findById(id);
+      if (!current) throw new TaskNotFoundError();
+      const task: Task = {
+        id: current.id,
+        title,
+        ...(description !== undefined && { description }),
+        createdAt: current.createdAt,
+      };
+      if (!(await repository.replace(task))) throw new TaskNotFoundError();
       return task;
     },
 

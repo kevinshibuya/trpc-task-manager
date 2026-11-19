@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   recordedInternalError,
+  recordedNotFoundError,
   recordedValidationError,
 } from "@/server/trpc/recorded-errors";
 
@@ -17,6 +18,16 @@ describe("describeError", () => {
 
     expect(described.fieldErrors).toEqual({ title: "Enter a title." });
     expect(described.message).toBe("Some of the values sent are not valid.");
+  });
+
+  it("says a task was not found and marks the failure as not found", () => {
+    const described = describeError(clientError(recordedNotFoundError));
+
+    expect(described.message).toBe(
+      "The task was not found. It may have been deleted.",
+    );
+    expect(described.notFound).toBe(true);
+    expect(described.fieldErrors).toEqual({});
   });
 
   it("turns an internal error into a generic sentence with no error code", () => {

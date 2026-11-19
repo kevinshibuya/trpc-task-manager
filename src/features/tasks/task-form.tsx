@@ -42,7 +42,14 @@ export function TaskForm({
   onSave,
 }: TaskFormProps) {
   const id = useId();
-  const [failure, setFailure] = useState<string | null>(null);
+  const initialValues = {
+    title: defaultValues?.title ?? "",
+    description: defaultValues?.description ?? "",
+  };
+  const [failure, setFailure] = useState<{
+    message: string;
+    notFound: boolean;
+  } | null>(null);
   const {
     register,
     handleSubmit,
@@ -52,10 +59,7 @@ export function TaskForm({
     // The schema the server validates with, so both sides agree. The defaults
     // already validate on submit, then again on every change.
     resolver: zodResolver(taskInput),
-    defaultValues: {
-      title: defaultValues?.title ?? "",
-      description: defaultValues?.description ?? "",
-    },
+    defaultValues: initialValues,
   });
 
   const save = handleSubmit(async (values) => {
@@ -63,7 +67,7 @@ export function TaskForm({
     try {
       await onSave(values);
     } catch (error) {
-      const { message, fieldErrors } = describeError(error);
+      const { message, fieldErrors, notFound } = describeError(error);
       const failedFields = FIELDS.filter((field) => fieldErrors[field]);
       failedFields.forEach((field, i) =>
         setError(
@@ -72,7 +76,7 @@ export function TaskForm({
           { shouldFocus: i === 0 },
         ),
       );
-      if (failedFields.length === 0) setFailure(message);
+      if (failedFields.length === 0) setFailure({ message, notFound });
     }
   });
 
@@ -87,7 +91,11 @@ export function TaskForm({
         <Alert variant="destructive">
           <CircleAlertIcon />
           <AlertTitle>The task could not be saved</AlertTitle>
-          <AlertDescription>{failure}</AlertDescription>
+          <AlertDescription>
+            <p>{failure.message}</p>
+            {/* The task is gone, so saving again cannot work. */}
+            {failure.notFound ? <Link href="/">Back to the list</Link> : null}
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -100,6 +108,9 @@ export function TaskForm({
             aria-required
             aria-invalid={!!errors.title}
             aria-describedby={errors.title ? `${id}-title-error` : undefined}
+            // react-hook-form fills its fields only once they mount, so the
+            // values are also given here for the server-rendered HTML.
+            defaultValue={initialValues.title}
             {...register("title")}
           />
           <FieldError id={`${id}-title-error`} errors={[errors.title]} />
@@ -115,6 +126,7 @@ export function TaskForm({
             aria-describedby={
               errors.description ? `${id}-description-error` : undefined
             }
+            defaultValue={initialValues.description}
             {...register("description")}
           />
           <FieldError
