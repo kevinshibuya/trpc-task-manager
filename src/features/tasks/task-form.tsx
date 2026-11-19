@@ -141,9 +141,20 @@ export function TaskForm({
       <div className="flex gap-2">
         {/* Before hydration the browser would submit the form itself, which
             reloads the page with the text in the address and saves nothing. */}
-        <Button type="submit" disabled={isSubmitting || !hydrated}>
-          {isSubmitting ? <Spinner /> : null}
-          {submitLabel}
+        <Button
+          type="submit"
+          disabled={isSubmitting || !hydrated}
+          className="relative"
+        >
+          {/* The spinner lies over the label instead of beside it, so the
+              button keeps its width and Cancel stays put. The label only
+              turns transparent, so it is still the button's name. */}
+          <span className={isSubmitting ? "opacity-0" : undefined}>
+            {submitLabel}
+          </span>
+          {isSubmitting ? (
+            <Spinner className="absolute inset-0 m-auto" />
+          ) : null}
         </Button>
         <Link href="/" className={buttonVariants({ variant: "outline" })}>
           Cancel

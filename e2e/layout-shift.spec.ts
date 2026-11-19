@@ -118,3 +118,37 @@ test("after editing a task, the list's first render on return already shows the 
   // One entry per render of the list: whether it already held the change.
   expect(shown.map((text) => text.includes(description))).not.toContain(false);
 });
+
+test("Save keeps its width while saving, and Cancel does not move", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/trpc/task.create**", async (route) => {
+    await released;
+    await route.continue();
+  });
+  await page.goto("/tasks/new");
+  const save = page.getByRole("button", { name: "Create task" });
+  const cancel = page.getByRole("link", { name: "Cancel" });
+  await expect(save).toBeEnabled();
+  await page
+    .getByRole("textbox", { name: "Title" })
+    .fill(uniqueTitle("Saved slowly"));
+  const saveBefore = await save.boundingBox();
+  const cancelBefore = await cancel.boundingBox();
+
+  await save.click();
+  await expect(save).toBeDisabled();
+  await expect(save.locator("[data-slot=spinner]")).toBeVisible();
+
+  expect((await save.boundingBox())?.width).toBe(saveBefore?.width);
+  expect((await cancel.boundingBox())?.x).toBe(cancelBefore?.x);
+  // The label is still the button's name while the spinner covers it.
+  await expect(save).toHaveAccessibleName(/Create task/);
+
+  release();
+  await expect(page).toHaveURL("/");
+});
