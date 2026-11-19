@@ -37,17 +37,42 @@ test("the first response is rendered for the request, not a static page", async 
   expect(response.headers()["cache-control"]).toContain("no-store");
 });
 
-test("the list hydrates with no console error and no page error", async ({
-  page,
-}) => {
-  await page.goto("/");
+test.describe("for a viewer in another time zone than the server", () => {
+  // The server runs in UTC (playwright.config.ts).
+  const VIEWER_TIME_ZONE = "Pacific/Auckland";
+  test.use({ timezoneId: VIEWER_TIME_ZONE });
 
-  const list = page.getByRole("list", { name: "Tasks" });
-  await expect(list.getByText(NEWEST_SAMPLE_TITLE).first()).toBeVisible();
-  await expect(list.getByRole("listitem").first()).toContainText(
-    /\d{4}/, // the creation date
-  );
-  // Gives hydration and any request it starts the time to finish, so the
-  // error guard sees what they log.
-  await page.waitForLoadState("networkidle");
+  test("the server renders the creation date in UTC", async ({ request }) => {
+    const html = await (await request.get("/")).text();
+
+    const firstDate = /<time\b[^>]*>([\s\S]*?)<\/time>/
+      .exec(html)?.[1]
+      .replace(/<!--[\s\S]*?-->/g, "");
+    expect(firstDate).toMatch(/\d{4}.* UTC$/);
+  });
+
+  test("the list hydrates with no console error, then shows the date in the viewer's zone", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const list = page.getByRole("list", { name: "Tasks" });
+    await expect(list.getByText(NEWEST_SAMPLE_TITLE).first()).toBeVisible();
+
+    const date = list.getByRole("listitem").first().locator("time");
+    const viewerText = await date.evaluate(
+      (time, timeZone) =>
+        new Intl.DateTimeFormat("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone,
+        }).format(new Date(time.getAttribute("datetime") ?? "")),
+      VIEWER_TIME_ZONE,
+    );
+    await expect(date).toHaveText(viewerText);
+
+    // Gives hydration and any request it starts the time to finish, so the
+    // error guard sees what they log.
+    await page.waitForLoadState("networkidle");
+  });
 });

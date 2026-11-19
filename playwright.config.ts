@@ -43,6 +43,9 @@ export default defineConfig({
   // error, never reused, so the specs always run against this build.
   webServer: {
     command: `pnpm start --port ${port}`,
+    // A zone no browser spec uses, so a date rendered in the server's own zone
+    // never matches the viewer's by accident.
+    env: { TZ: "UTC" },
     url: baseURL,
     reuseExistingServer: false,
     timeout: 60_000,
