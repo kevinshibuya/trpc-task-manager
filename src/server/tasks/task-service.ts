@@ -69,6 +69,11 @@ export function createTaskService(
       return task;
     },
 
+    /** Removes the task with this id. Throws `TaskNotFoundError`. */
+    async delete(id: string): Promise<void> {
+      if (!(await repository.remove(id))) throw new TaskNotFoundError();
+    },
+
     /** One page of tasks, newest first. Throws `InvalidCursorError`. */
     async list({
       cursor,

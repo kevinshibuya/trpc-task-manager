@@ -30,7 +30,9 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteTaskButton } from "@/features/tasks/delete-task-button";
 import { describeError } from "@/features/tasks/describe-error";
+import { useDeleteTask } from "@/features/tasks/use-delete-task";
 import { useTRPC } from "@/trpc/client";
 import { getNextTaskListPage, taskListInput } from "@/trpc/task-list-query";
 
@@ -54,6 +56,8 @@ export function TaskList() {
     }),
   );
   const tasks = data.pages.flatMap((page) => page.items);
+  // Here and not in the row, which leaves the list as soon as the delete starts.
+  const { mutate: deleteTask } = useDeleteTask();
 
   // The sentinel is on screen only while another page can be asked for.
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -111,6 +115,10 @@ export function TaskList() {
               >
                 Edit<span className="sr-only"> {task.title}</span>
               </Link>
+              <DeleteTaskButton
+                title={task.title}
+                onConfirm={() => deleteTask({ id: task.id })}
+              />
             </ItemActions>
           </Item>
         ))}

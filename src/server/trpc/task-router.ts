@@ -25,4 +25,8 @@ export const taskRouter = router({
     .mutation(({ ctx, input: { id, ...fields } }) =>
       ctx.taskService.update(id, fields),
     ),
+
+  delete: publicProcedure
+    .input(taskIdInput)
+    .mutation(({ ctx, input }) => ctx.taskService.delete(input.id)),
 });
