@@ -24,7 +24,7 @@ test("New task opens the form, which refuses an empty title and stays on the pag
   await expect(page).toHaveURL("/tasks/new");
 });
 
-test("creating a task returns to the list with a confirmation and the task first", async ({
+test("creating a task returns to the list with a confirmation and no older task above it", async ({
   page,
   request,
 }) => {
@@ -39,11 +39,23 @@ test("creating a task returns to the list with a confirmation and the task first
 
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Task created.")).toBeVisible();
-  const firstRow = page
-    .getByRole("list", { name: "Tasks" })
-    .getByRole("listitem")
-    .first();
-  await expect(firstRow).toContainText(title);
+  const rows = page.getByRole("list", { name: "Tasks" }).getByRole("listitem");
+  await expect(rows.filter({ hasText: title })).toHaveCount(1);
+
+  // Other specs create tasks on the same server, so a task created a moment
+  // later can sit above this one. Newest first means no row above it is older.
+  const shown = await rows.evaluateAll((items) =>
+    items.map((item) => ({
+      title: item.querySelector("[data-slot=item-title]")?.textContent,
+      createdAt: item.querySelector("time")?.getAttribute("datetime") ?? "",
+    })),
+  );
+  const index = shown.findIndex((row) => row.title === title);
+  expect(index).not.toBe(-1);
+  const olderAbove = shown
+    .slice(0, index)
+    .filter((row) => row.createdAt < shown[index].createdAt);
+  expect(olderAbove).toEqual([]);
   await page.waitForLoadState("networkidle");
 
   // A page built once, at build time, could not hold a task created now.
