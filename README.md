@@ -43,58 +43,67 @@ Continuous integration runs every command above on each pull request ([`.github/
 
 ## The short answers
 
-These are the questions I asked myself while building this, each with the answer I landed on. The longer reasoning is in the [decision records](docs/adr).
+Questions about how this is built and how it could grow, each answered in a few lines. The longer reasoning is in the [decision records](docs/adr).
 
-**Where is the list built, on the server or in the browser?**
+### How it is built
 
-On the server, on every request. I asked four questions about the page.
+**What are the pieces?**
 
-1. Does the HTML change between requests? Yes. Anyone can add or delete a task at any moment, so a page built once and reused would be wrong.
-2. Does the first thing you see need the tasks? Yes. The brief asks for a server-rendered list, so the first 20 tasks are already in the HTML.
-3. How old can the data be? Not old at all. The server builds the page for each visit and tells the browser not to cache it.
-4. What does a rush of visitors cost? The server builds the page again for every visit. With one process and a short list that is cheap, about 9 ms a page.
+Three layers on the server, with the pages on top. The task module holds the rules. The tRPC router is the door. It checks what comes in and calls the task module. Storage sits behind an interface, and today its one implementation keeps the tasks in memory. The diagram is in the next section.
 
-The record is [ADR 0004](docs/adr/0004-ssr-by-server-prefetch-and-hydration.md).
+**Where do the rules for a task live?**
+
+In [`src/server/tasks`](src/server/tasks), and nowhere else. That folder imports nothing from tRPC, Next.js or React, so the rules can be tested with no server and no browser. The form and the server use the same schema from [`task.ts`](src/server/tasks/task.ts), so they can't disagree about what a valid task is. The server still checks again, because anyone can call the API without the form.
+
+**How do the tasks get into the first HTML?**
+
+The list page runs on the server for every request. It calls the router as a plain function in the same process, with no HTTP request, and puts the first 20 tasks into the HTML. It sends the same data along for the browser, which carries on from there and asks for the next 20 as you scroll. The record is [ADR 0004](docs/adr/0004-ssr-by-server-prefetch-and-hydration.md).
 
 **Why can I read the page before the buttons work?**
 
 The server sends finished HTML, so the tasks show at once. The buttons need the page's scripts, which arrive later. Wiring the scripts to the HTML is called hydration. On a simulated phone the tasks show at 0.8 s and the page answers a click at 2.5 s. During that gap the list ends in grey placeholder rows, and Save shows a spinner instead of looking ready.
 
-**Why is it slow with `pnpm dev` on a throttled connection?**
+**How does the browser talk to the server?**
 
-The development server sends about 20 times more script than the production build, 3.8 MB against 194 kB. Use `pnpm build` and `pnpm start` to judge speed.
+Through tRPC, at one address, `/api/trpc`. The browser calls server functions by name and the compiler checks every call. Rename a field on the server and the browser code stops compiling. One team owns both sides and both are TypeScript, which is the case tRPC is made for.
 
-**Why tRPC instead of a REST API?**
+**What happens when something goes wrong?**
 
-One team owns both sides, and both are TypeScript. With tRPC the browser calls server functions by name and the compiler checks every call. Rename a field on the server and the browser code stops compiling. I would not pick it for an API that outsiders or other languages call.
-
-**Where is the rule for a valid task?**
-
-In one file, [`src/server/tasks/task.ts`](src/server/tasks/task.ts). The form and the server both use that schema, so they can't disagree. The form checks each field as you type. The server checks again, because anyone can call the API without the form.
+The task module raises its own errors, such as "task not found". One middleware turns each into a tRPC code, and [`describe-error.ts`](src/features/tasks/describe-error.ts) turns the code into a sentence for a person. Validation messages arrive grouped by field, so each one shows next to its field. Offline, a save, a delete or a list load fails at once and says so, and a failed delete puts its row back.
 
 **Why does the list continue from a cursor instead of page numbers?**
 
 With page numbers, a task added while you scroll pushes every row down one place, and page 2 repeats a row you already saw. A cursor asks for the tasks after the last one you have, so nothing repeats and nothing is skipped. The record is [ADR 0006](docs/adr/0006-cursor-pagination-for-the-task-list.md).
 
-**What happens when the connection drops?**
+### How it can grow
 
-A save, a delete or a list load fails at once and says so. Nothing waits in silence for the network. A delete that fails puts its row back. When the connection returns, press Retry.
+**What would it take to add a database?**
 
-**What happens to my tasks when the server restarts?**
+One new class that implements `TaskRepository`. The rules, the router and the pages stay as they are. The list tests are written against the interface, so the new class runs the same tests. The record is [ADR 0003](docs/adr/0003-task-service-over-a-repository.md).
 
-They are gone. They live in the memory of one process. That is also why there is no hosted demo. On a serverless platform each copy of the server would hold its own list. The record is [ADR 0005](docs/adr/0005-tasks-live-in-one-node-process.md).
+**What would it take to run more than one copy of the server?**
 
-**How hard is it to add a database?**
+The database first. Today the tasks live in the memory of one process, so two copies would hold two different lists, and a restart loses everything. That is why there is no hosted demo. With storage outside the process the server keeps no state of its own, and any number of copies can run. The record is [ADR 0005](docs/adr/0005-tasks-live-in-one-node-process.md).
 
-One new class. Storage sits behind the `TaskRepository` interface, so the rules, the API and the list tests stay as they are. The record is [ADR 0003](docs/adr/0003-task-service-over-a-repository.md).
+**How far does keeping the tasks in memory go?**
 
-**Why English field names when the brief says `titulo`?**
+Further than the brief needs. A list request takes about 2 ms with up to 10,000 tasks and about 6 ms with 100,000. Each request copies and filters every task, so the cost grows with the list. A database index would read one page of rows and skip the rest. The numbers are under [Performance](#performance).
 
-The hiring process asks for every deliverable in English, and one language across the code reads better than `task.titulo`. The mapping is in a table below. The record is [ADR 0002](docs/adr/0002-english-field-names.md).
+**What would it take to give each person their own tasks?**
 
-**Why Next.js 15 and not 16?**
+A login, then three changes. The request's user goes into the tRPC context. A protected procedure refuses calls that have no user. Every task gets an owner, and the repository filters by it.
 
-The brief names version 15. It is the only version the brief pins, so it wins over "the most recent versions". The record is [ADR 0001](docs/adr/0001-next-15-instead-of-16.md).
+**What would it take to add a field, say a due date?**
+
+Add it to the schema in `task.ts`, to the task the repository stores, and to the form. The types are shared from the server to the browser, so the compiler points at every place that has to change.
+
+**What if another kind of client needs the API, like a mobile app in another language?**
+
+tRPC only fits TypeScript clients. The rules don't live in the router, so a REST layer can sit beside it and call the same task service.
+
+**What should come before real users?**
+
+A login, rate limiting on the API route, and logs that go somewhere other than the console. The full list is under [Limits and next steps](#limits-and-next-steps).
 
 ## Architecture
 
