@@ -61,6 +61,51 @@ test("the theme toggle switches the theme inside a view transition", async ({
   expect(classesAfterUpdate[0]).toMatch(/\bdark\b/);
 });
 
+test("inside the theme cross-fade, nothing runs a colour transition of its own", async ({
+  page,
+}) => {
+  // Reads the page's animations once the cross-fade has started.
+  await page.addInitScript(() => {
+    const start = document.startViewTransition.bind(document);
+    document.startViewTransition = (update) => {
+      const transition = start(update);
+      void transition.ready.then(() => {
+        const animations = document.getAnimations();
+        Object.assign(window, {
+          crossFade: animations
+            .filter((animation) =>
+              (animation.effect as KeyframeEffect | null)?.pseudoElement?.match(
+                /^::view-transition-(old|new)\(root\)$/,
+              ),
+            )
+            .map((animation) => animation.effect?.getTiming().duration),
+          ownTransitions: animations.filter(
+            (animation) => animation instanceof CSSTransition,
+          ).length,
+        });
+      });
+      return transition;
+    };
+  });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/\blight\b/);
+
+  await page.getByRole("button", { name: "Toggle theme" }).click();
+
+  await page.waitForFunction(() => "crossFade" in window);
+  const { crossFade, ownTransitions } = await page.evaluate(() => {
+    const seen = window as unknown as {
+      crossFade: number[];
+      ownTransitions: number;
+    };
+    return { crossFade: seen.crossFade, ownTransitions: seen.ownTransitions };
+  });
+  // The cross-fade still runs, and the buttons do not animate inside it.
+  expect(crossFade.length).toBeGreaterThan(0);
+  expect(crossFade.every((duration) => duration === 200)).toBe(true);
+  expect(ownTransitions).toBe(0);
+});
+
 test("an unknown address shows the not found page with a link home", async ({
   page,
   allowError,

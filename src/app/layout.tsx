@@ -24,7 +24,14 @@ export default function RootLayout({
     // element only.
     <html lang="en" className={geist.variable} suppressHydrationWarning>
       <body className="antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        {/* The theme toggle cross-fades the whole page, so elements do not
+            also run their own colour transitions inside it. */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <TRPCReactProvider>
             <div className="mx-auto flex min-h-svh w-full max-w-2xl flex-col px-4">
               <SiteHeader />
