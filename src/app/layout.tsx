@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/ui/sonner";
+import { TRPCReactProvider } from "@/trpc/client";
 
 import "./globals.css";
 
@@ -24,10 +25,12 @@ export default function RootLayout({
     <html lang="en" className={geist.variable} suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="mx-auto flex min-h-svh w-full max-w-2xl flex-col px-4">
-            <SiteHeader />
-            <main className="flex flex-1 flex-col py-6">{children}</main>
-          </div>
+          <TRPCReactProvider>
+            <div className="mx-auto flex min-h-svh w-full max-w-2xl flex-col px-4">
+              <SiteHeader />
+              <main className="flex flex-1 flex-col py-6">{children}</main>
+            </div>
+          </TRPCReactProvider>
           {/* Mounted once here, so any page can call `toast()`. */}
           <Toaster />
         </ThemeProvider>

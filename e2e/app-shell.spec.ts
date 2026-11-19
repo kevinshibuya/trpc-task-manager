@@ -1,8 +1,6 @@
 import { expect, test } from "./fixtures";
 
-test("the home page shows the header and the task placeholder", async ({
-  page,
-}) => {
+test("the home page shows the header", async ({ page }) => {
   await page.goto("/");
 
   const header = page.getByRole("banner");
@@ -12,7 +10,6 @@ test("the home page shows the header and the task placeholder", async ({
   await expect(
     header.getByRole("button", { name: "Toggle theme" }),
   ).toBeVisible();
-  await expect(page.getByText("No tasks yet")).toBeVisible();
 });
 
 test.describe("with a dark system theme", () => {
@@ -46,5 +43,5 @@ test("an unknown address shows the not found page with a link home", async ({
 
   await page.getByRole("link", { name: "Back to the home page" }).click();
   await expect(page).toHaveURL("/");
-  await expect(page.getByText("No tasks yet")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Tasks" })).toBeVisible();
 });
