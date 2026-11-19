@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "cn";
 import { CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -148,12 +149,28 @@ export function TaskForm({
         >
           {/* The spinner lies over the label instead of beside it, so the
               button keeps its width and Cancel stays put. The label only
-              turns transparent, so it is still the button's name. */}
-          <span className={isSubmitting ? "opacity-0" : undefined}>
+              turns transparent, so it is still the button's name. Before
+              hydration the same look arrives after a delay, through CSS
+              animations in the server HTML, so a disabled Save never passes
+              for a working one; the delay stays with reduced motion. */}
+          <span
+            className={cn(
+              isSubmitting && "opacity-0",
+              !hydrated &&
+                "animate-hide-after-wait motion-reduce:[animation-duration:0s]",
+            )}
+          >
             {submitLabel}
           </span>
           {isSubmitting ? (
             <Spinner className="absolute inset-0 m-auto" />
+          ) : !hydrated ? (
+            <span
+              aria-hidden
+              className="absolute inset-0 flex animate-show-after-wait items-center justify-center motion-reduce:[animation-duration:0s]"
+            >
+              <Spinner />
+            </span>
           ) : null}
         </Button>
         <Link href="/" className={buttonVariants({ variant: "outline" })}>

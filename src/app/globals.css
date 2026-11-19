@@ -47,6 +47,25 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Save while the page waits for its scripts. After half a second, so a normal
+   load never shows it, the label fades out and a spinner fades in. Both are in
+   the server HTML, so this needs no JavaScript, and hydration removes them. */
+@theme {
+  --animate-hide-after-wait: hide-after-wait 150ms 500ms both;
+  --animate-show-after-wait: show-after-wait 150ms 500ms both;
+
+  @keyframes hide-after-wait {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes show-after-wait {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
