@@ -143,3 +143,33 @@ test("a page that fails to load offers a retry and keeps the tasks shown", async
   await expect.poll(() => rows(page).count()).toBeGreaterThan(PAGE_SIZE);
   await expect(alert).toBeHidden();
 });
+
+test("offline, scrolling to the end shows the alert instead of waiting", async ({
+  page,
+  context,
+  allowError,
+}) => {
+  // The requests the offline browser cannot send are the failures this test
+  // causes on purpose: the next page, and the edit pages Next.js prefetches
+  // as their links scroll into view.
+  allowError("net::ERR_INTERNET_DISCONNECTED");
+  allowError("Failed to fetch RSC payload");
+  await page.goto("/");
+  await expect(rows(page)).toHaveCount(PAGE_SIZE);
+
+  await context.setOffline(true);
+  await scrollToEnd(page);
+
+  const alert = page
+    .getByRole("alert")
+    .filter({ hasText: "More tasks could not be loaded" });
+  await expect(alert).toBeVisible();
+  await expect(alert).toContainText("Check your connection");
+  await expect(page.locator("main [data-slot=skeleton]")).toHaveCount(0);
+
+  // Back online, Retry loads the page that failed.
+  await context.setOffline(false);
+  await alert.getByRole("button", { name: "Retry" }).click();
+  await expect.poll(() => rows(page).count()).toBeGreaterThan(PAGE_SIZE);
+  await expect(alert).toBeHidden();
+});

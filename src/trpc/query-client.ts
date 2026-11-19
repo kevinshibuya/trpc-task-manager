@@ -10,6 +10,10 @@ export function makeQueryClient() {
         staleTime: 30 * 1000,
         // A failure reaches the person at once instead of after silent retries.
         retry: false,
+        // Offline, a load fails at once and says so instead of waiting,
+        // unseen, for the network to come back: the list shows its alert
+        // and Retry, not skeletons that never fill.
+        networkMode: "always",
       },
       mutations: {
         // Offline, a change fails at once with the connection message instead
