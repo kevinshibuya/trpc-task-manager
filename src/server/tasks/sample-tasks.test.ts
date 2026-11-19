@@ -62,7 +62,7 @@ describe("sample tasks", () => {
 
     for (const task of tasks) {
       expect(task.title.trim()).not.toBe("");
-      expect(task.createdAt.getTime()).toBeLessThanOrEqual(before);
+      expect(task.createdAt.getTime()).toBeLessThan(before);
     }
   });
 });
