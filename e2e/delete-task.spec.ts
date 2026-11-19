@@ -219,3 +219,52 @@ test("deleting while offline brings the row back with the connection message", a
   await page.reload();
   await expect(taskRow(page, title)).toHaveCount(1);
 });
+
+for (const viewport of [
+  { width: 1280, height: 720 },
+  { width: 390, height: 844 },
+]) {
+  test.describe(`at ${viewport.width} px wide`, () => {
+    test.use({ viewport });
+
+    test("a long title with no spaces keeps the dialog's buttons inside it", async ({
+      page,
+      request,
+    }) => {
+      // 120 wide characters with no space, the longest title the form accepts.
+      const title =
+        `W${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+          .toUpperCase()
+          .padEnd(120, "W");
+      await createTask(request, title);
+      await page.goto("/");
+
+      const dialog = await openDeleteDialog(page, title);
+      const box = await dialog.boundingBox();
+      expect(box).not.toBeNull();
+      for (const name of ["Cancel", "Delete"]) {
+        const button = await dialog
+          .getByRole("button", { name, exact: true })
+          .boundingBox();
+        expect(button, name).not.toBeNull();
+        expect(button!.x, name).toBeGreaterThanOrEqual(box!.x);
+        expect(button!.x + button!.width, name).toBeLessThanOrEqual(
+          box!.x + box!.width,
+        );
+        expect(button!.x, name).toBeGreaterThanOrEqual(0);
+        expect(button!.x + button!.width, name).toBeLessThanOrEqual(
+          viewport.width,
+        );
+      }
+      const sideScroll = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      );
+      expect(sideScroll).toBeLessThanOrEqual(0);
+
+      await dialog.getByRole("button", { name: "Cancel" }).click();
+      await expect(dialog).toBeHidden();
+    });
+  });
+}
