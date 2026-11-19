@@ -32,7 +32,9 @@ export default function RootLayout({
           <TRPCReactProvider>
             <div className="mx-auto flex min-h-svh w-full max-w-2xl flex-col px-4">
               <SiteHeader />
-              <main className="flex flex-1 flex-col py-6">{children}</main>
+              <main className="flex flex-1 flex-col pt-4 pb-6 sm:pt-8">
+                {children}
+              </main>
             </div>
           </TRPCReactProvider>
           {/* Mounted once here, so any page can call `toast()`. */}

@@ -1,15 +1,28 @@
 import { expect, test } from "./fixtures";
 
-test("the home page shows the header", async ({ page }) => {
+test("the home page shows the header with the theme toggle and no way back", async ({
+  page,
+}) => {
   await page.goto("/");
 
   const header = page.getByRole("banner");
   await expect(
-    header.getByRole("link", { name: "Task manager" }),
+    header.getByRole("button", { name: "Toggle theme" }),
   ).toBeVisible();
+  await expect(header.getByRole("link")).toHaveCount(0);
+});
+
+test("another page's header leads back to the task list", async ({ page }) => {
+  await page.goto("/tasks/new");
+
+  const header = page.getByRole("banner");
   await expect(
     header.getByRole("button", { name: "Toggle theme" }),
   ).toBeVisible();
+  await header.getByRole("link", { name: "Back to tasks" }).click();
+
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("list", { name: "Tasks" })).toBeVisible();
 });
 
 test.describe("with a dark system theme", () => {

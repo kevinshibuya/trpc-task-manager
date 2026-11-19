@@ -1,6 +1,10 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { cn } from "cn";
+import { InboxIcon, PlusIcon } from "lucide-react";
+import Link from "next/link";
 
 import { TaskList } from "@/components/task-list";
+import { buttonVariants } from "@/components/ui/button";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { getNextTaskListPage, taskListInput } from "@/trpc/task-list-query";
 
@@ -23,8 +27,23 @@ export default async function TaskListPage() {
   );
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <TaskList />
-    </HydrationBoundary>
+    <div className="flex flex-1 flex-col gap-7">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight">
+          <InboxIcon className="size-5.5 text-primary" aria-hidden />
+          Tasks
+        </h1>
+        <Link
+          href="/tasks/new"
+          className={cn(buttonVariants({ size: "icon" }), "rounded-full")}
+        >
+          <PlusIcon aria-hidden />
+          <span className="sr-only">New task</span>
+        </Link>
+      </div>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <TaskList />
+      </HydrationBoundary>
+    </div>
   );
 }

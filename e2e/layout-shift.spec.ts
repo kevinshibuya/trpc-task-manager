@@ -74,10 +74,7 @@ test("after creating a task, the list's first render on return already holds it"
   // The list is in the browser's cache before the form opens.
   await page.goto("/");
   await waitForHydratedList(page);
-  await page
-    .getByRole("banner")
-    .getByRole("link", { name: "New task" })
-    .click();
+  await page.getByRole("main").getByRole("link", { name: "New task" }).click();
   await page.getByRole("textbox", { name: "Title" }).fill(title);
 
   await snapshots.clear();

@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SiteHeader } from "./site-header";
 
+// The header reads the current path to decide whether to offer a way back.
+let pathname = "/";
+vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
+
 /** Stubs matchMedia, which jsdom lacks, matching only the given queries. */
 function stubMatchMedia(matching: string[] = []) {
   vi.stubGlobal(
@@ -43,6 +47,7 @@ function stubViewTransitions() {
 
 // next-themes reads matchMedia to follow the system theme.
 beforeEach(() => {
+  pathname = "/";
   stubMatchMedia();
   localStorage.clear();
   document.documentElement.className = "";
@@ -62,16 +67,22 @@ function renderLightHeader() {
 }
 
 describe("SiteHeader", () => {
-  it("shows the application name, a New task action and a theme toggle", () => {
+  it("shows only the theme toggle on the task list", () => {
     render(<SiteHeader />);
 
-    expect(screen.getByRole("link", { name: "Task manager" })).toHaveAttribute(
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Toggle theme" }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers a way back to the task list on every other page", () => {
+    pathname = "/tasks/new";
+    render(<SiteHeader />);
+
+    expect(screen.getByRole("link", { name: "Back to tasks" })).toHaveAttribute(
       "href",
       "/",
-    );
-    expect(screen.getByRole("link", { name: "New task" })).toHaveAttribute(
-      "href",
-      "/tasks/new",
     );
     expect(
       screen.getByRole("button", { name: "Toggle theme" }),

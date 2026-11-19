@@ -8,10 +8,7 @@ test("New task opens the form, which refuses an empty title and stays on the pag
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("banner")
-    .getByRole("link", { name: "New task" })
-    .click();
+  await page.getByRole("main").getByRole("link", { name: "New task" }).click();
 
   await expect(page).toHaveURL("/tasks/new");
   const title = page.getByRole("textbox", { name: "Title" });

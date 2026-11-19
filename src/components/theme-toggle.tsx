@@ -62,12 +62,19 @@ export function ThemeToggle() {
   }
 
   return (
-    <Button ref={buttonRef} variant="ghost" size="icon" onClick={toggleTheme}>
+    // The negative margin lines the icon up with the column's right edge.
+    <Button
+      ref={buttonRef}
+      variant="ghost"
+      size="icon"
+      className="-mr-1.5 text-muted-foreground"
+      onClick={toggleTheme}
+    >
       {/* The icons switch through the `dark` class, not through
           `resolvedTheme`, so the server HTML and the first client render
           match whatever theme the browser picks. */}
-      <SunIcon className="dark:hidden" aria-hidden />
-      <MoonIcon className="hidden dark:block" aria-hidden />
+      <SunIcon className="size-5 dark:hidden" aria-hidden />
+      <MoonIcon className="hidden size-5 dark:block" aria-hidden />
       <span className="sr-only">Toggle theme</span>
     </Button>
   );

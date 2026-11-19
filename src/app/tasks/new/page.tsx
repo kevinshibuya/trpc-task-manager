@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "New task · Task manager" };
 export default function NewTaskPage() {
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold">New task</h1>
+      <h1 className="text-2xl font-bold tracking-tight">New task</h1>
       <CreateTaskForm />
     </div>
   );

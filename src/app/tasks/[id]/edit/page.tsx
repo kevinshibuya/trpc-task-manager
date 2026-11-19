@@ -28,7 +28,7 @@ export default async function EditTaskPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold">Edit task</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Edit task</h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <EditTaskForm id={id} />
       </HydrationBoundary>
