@@ -1,7 +1,12 @@
 "use client";
 
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-import { CircleAlertIcon, ListTodoIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  CircleAlertIcon,
+  ListTodoIcon,
+  PencilIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
@@ -99,27 +104,48 @@ export function TaskList() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <ItemGroup aria-label="Tasks" aria-busy={isFetchingNextPage}>
+    <div className="flex flex-col gap-0.5">
+      <ItemGroup
+        aria-label="Tasks"
+        aria-busy={isFetchingNextPage}
+        className="gap-0.5"
+      >
         {tasks.map((task) => (
-          <Item key={task.id} role="listitem" variant="outline">
+          // The row's padding sits outside the column, so its text lines up
+          // with the title above and only the hover fill reaches past it.
+          <Item
+            key={task.id}
+            role="listitem"
+            className="-mx-3 w-auto flex-nowrap items-start gap-3 rounded-md border-0 px-3 py-1.5 focus-within:bg-muted hover:bg-muted"
+          >
             {/* A long word breaks anywhere, so it stays clear of the actions
                 and the page never scrolls sideways. */}
-            <ItemContent className="min-w-0">
-              <ItemTitle className="wrap-anywhere">{task.title}</ItemTitle>
+            <ItemContent className="min-w-0 gap-0.5">
+              <ItemTitle className="text-[15px] leading-4.5 font-normal wrap-anywhere">
+                {task.title}
+              </ItemTitle>
               {task.description ? (
-                <ItemDescription className="wrap-anywhere">
+                <ItemDescription className="text-[13px] leading-4.5 wrap-anywhere">
                   {task.description}
                 </ItemDescription>
               ) : null}
-              <CreationDate date={task.createdAt} />
+              <div className="flex items-center gap-1 text-xs leading-4 text-muted-foreground">
+                <CalendarIcon className="size-3" aria-hidden />
+                <CreationDate date={task.createdAt} />
+              </div>
             </ItemContent>
-            <ItemActions>
+            {/* As tall as the title's line, so the buttons centre on it. */}
+            <ItemActions className="h-4.5 gap-0.5">
               <Link
                 href={`/tasks/${task.id}/edit`}
-                className={buttonVariants({ variant: "outline", size: "sm" })}
+                className={buttonVariants({
+                  variant: "ghost",
+                  size: "icon-sm",
+                  className: "text-muted-foreground",
+                })}
               >
-                Edit<span className="sr-only"> {task.title}</span>
+                <PencilIcon aria-hidden />
+                <span className="sr-only">Edit {task.title}</span>
               </Link>
               <DeleteTaskButton
                 title={task.title}
@@ -133,7 +159,7 @@ export function TaskList() {
       {/* A retry keeps the error until it settles, so the alert waits for
           the retry to fail and the skeletons show while it runs. */}
       {isFetchNextPageError && !isFetchingNextPage ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mt-4">
           <CircleAlertIcon />
           <AlertTitle>More tasks could not be loaded</AlertTitle>
           <AlertDescription>{describeError(error).message}</AlertDescription>
@@ -158,7 +184,10 @@ export function TaskList() {
 
       {/* Present from the first render, so screen readers announce what
           appears in it. The failure is announced by the alert itself. */}
-      <div role="status" className="text-center text-sm text-muted-foreground">
+      <div
+        role="status"
+        className="mt-4 text-center text-sm text-muted-foreground"
+      >
         {isFetchingNextPage ? (
           <span className="sr-only">Loading more tasks</span>
         ) : !hasNextPage ? (
@@ -169,16 +198,15 @@ export function TaskList() {
   );
 }
 
+/** Rows of the same height as a task with a title and a date. */
 function TaskRowSkeletons() {
   return (
-    <div aria-hidden className="flex flex-col gap-4">
+    <div aria-hidden className="flex flex-col gap-0.5">
       {Array.from({ length: SKELETON_ROWS }, (_, i) => (
-        <Item key={i} variant="outline">
-          <ItemContent>
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-1/3" />
-          </ItemContent>
-        </Item>
+        <div key={i} className="flex flex-col gap-0.5 py-1.5">
+          <Skeleton className="my-0.5 h-3.5 w-2/3" />
+          <Skeleton className="my-0.5 h-3 w-1/3" />
+        </div>
       ))}
     </div>
   );

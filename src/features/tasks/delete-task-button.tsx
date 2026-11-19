@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -27,8 +28,17 @@ export function DeleteTaskButton({
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
-        Delete<span className="sr-only"> {title}</span>
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-destructive"
+          />
+        }
+      >
+        <Trash2Icon aria-hidden />
+        <span className="sr-only">Delete {title}</span>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
