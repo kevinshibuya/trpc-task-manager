@@ -116,6 +116,13 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* The theme toggle cross-fades the whole page through a view transition. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
