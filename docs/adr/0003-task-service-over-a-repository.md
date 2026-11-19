@@ -12,7 +12,7 @@ The server side has three layers. A task module owns the schemas, the rules and 
 ## Considered options
 
 - **Procedures that touch a store module directly.** The least code. Rejected because the rules would live inside transport code, tests would need tRPC to reach them, and replacing the store would mean editing every procedure.
-- **A use-case class per operation, with mappers and a dependency injection container.** Rejected as ceremony. Four operations on one entity don't justify it, and the brief asks for something simple.
+- **A use-case class per operation, with mappers and a dependency injection container.** Rejected as ceremony. Five operations on one entity don't justify it, and the brief asks for something simple.
 
 ## Consequences
 
