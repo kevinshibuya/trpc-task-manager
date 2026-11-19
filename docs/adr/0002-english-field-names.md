@@ -9,12 +9,12 @@ The brief lists the task's fields as `id`, `titulo`, `descricao` and `dataCriaca
 
 The task uses `id`, `title`, `description` and `createdAt` everywhere: the domain, the tRPC contract and the interface. One language across the codebase reads better than a model that switches language mid-identifier, as in `task.titulo`.
 
-| Brief | Code |
-| --- | --- |
-| `id` | `id` |
-| `titulo` | `title` |
-| `descricao` | `description` |
-| `dataCriacao` | `createdAt` |
+| Brief         | Code          |
+| ------------- | ------------- |
+| `id`          | `id`          |
+| `titulo`      | `title`       |
+| `descricao`   | `description` |
+| `dataCriacao` | `createdAt`   |
 
 ## Considered options
 

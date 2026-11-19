@@ -1,0 +1,221 @@
+import type { APIRequestContext, Page } from "@playwright/test";
+
+import { expect, test } from "./fixtures";
+
+// Other specs share the server, so each run deletes a task only it created.
+const uniqueTitle = (label: string) =>
+  `${label} by the browser spec ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+// The batch link puts the procedure names in the path: `/api/trpc/task.delete?batch=1`.
+const DELETE_REQUEST = /\/api\/trpc\/[^?]*task\.delete/;
+const LIST_REQUEST = /\/api\/trpc\/[^?]*task\.list/;
+
+async function createTask(
+  request: APIRequestContext,
+  title: string,
+): Promise<void> {
+  const response = await request.post("/api/trpc/task.create", {
+    data: { json: { title } },
+  });
+  expect(response.status()).toBe(200);
+}
+
+/** A promise and the function that settles it, to hold a request back. */
+function gate() {
+  let open!: () => void;
+  const opened = new Promise<void>((resolve) => (open = resolve));
+  return { open, opened };
+}
+
+const taskRow = (page: Page, title: string) =>
+  page
+    .getByRole("list", { name: "Tasks" })
+    .getByRole("listitem")
+    .filter({ hasText: title });
+
+async function openDeleteDialog(page: Page, title: string) {
+  await page.getByRole("button", { name: `Delete ${title}` }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toContainText(title);
+  return dialog;
+}
+
+test("cancelling the dialog leaves the task in the list", async ({
+  page,
+  request,
+}) => {
+  const title = uniqueTitle("Kept");
+  await createTask(request, title);
+  await page.goto("/");
+
+  const dialog = await openDeleteDialog(page, title);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(taskRow(page, title)).toHaveCount(1);
+  await page.reload();
+  await expect(taskRow(page, title)).toHaveCount(1);
+});
+
+test("confirming removes the row while the request is pending, then confirms, and the task stays gone", async ({
+  page,
+  request,
+}) => {
+  const title = uniqueTitle("Deleted");
+  await createTask(request, title);
+  await page.goto("/");
+  await expect(taskRow(page, title)).toHaveCount(1);
+
+  const deleteResponse = gate();
+  await page.route(DELETE_REQUEST, async (route) => {
+    await deleteResponse.opened;
+    await route.continue();
+  });
+
+  const dialog = await openDeleteDialog(page, title);
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+
+  // The request is still held, so only the cache can have removed the row.
+  await expect(taskRow(page, title)).toHaveCount(0);
+
+  deleteResponse.open();
+  await expect(page.getByText("Task deleted.")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+
+  await page.reload();
+  await expect(page.getByRole("list", { name: "Tasks" })).toBeVisible();
+  await expect(taskRow(page, title)).toHaveCount(0);
+});
+
+test("a failed delete brings the row back with an error before the list is fetched again", async ({
+  page,
+  request,
+  allowError,
+}) => {
+  // The browser logs the request this test aborts.
+  allowError(/ERR_FAILED/);
+  const title = uniqueTitle("Restored");
+  await createTask(request, title);
+  await page.goto("/");
+  await expect(taskRow(page, title)).toHaveCount(1);
+
+  await page.route(DELETE_REQUEST, (route) => route.abort());
+  const listRequested = gate();
+  const listResponse = gate();
+  await page.route(LIST_REQUEST, async (route) => {
+    listRequested.open();
+    await listResponse.opened;
+    await route.continue();
+  });
+
+  const dialog = await openDeleteDialog(page, title);
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+
+  // The revalidation has started and its answer is held back, so the row can
+  // only come from the cache the failed delete restored.
+  await listRequested.opened;
+  await expect(taskRow(page, title)).toHaveCount(1);
+  await expect(page.getByText("The task could not be deleted.")).toBeVisible();
+  await expect(page.getByText(/server could not be reached/)).toBeVisible();
+
+  listResponse.open();
+  await page.waitForLoadState("networkidle");
+  await page.reload();
+  await expect(taskRow(page, title)).toHaveCount(1);
+});
+
+async function confirmDelete(page: Page, title: string) {
+  const dialog = await openDeleteDialog(page, title);
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(dialog).toBeHidden();
+}
+
+test("a failed delete comes back alone while a later delete is pending, and the list is fetched again once", async ({
+  page,
+  request,
+  allowError,
+}) => {
+  // The browser logs the request this test aborts.
+  allowError(/ERR_FAILED/);
+  const refused = uniqueTitle("Refused");
+  const pending = uniqueTitle("Pending");
+  await createTask(request, refused);
+  await createTask(request, pending);
+  await page.goto("/");
+  await expect(taskRow(page, refused)).toHaveCount(1);
+  await expect(taskRow(page, pending)).toHaveCount(1);
+
+  // Both delete requests are held, in the order they are sent. The first is
+  // then refused and the second let through.
+  const firstRefused = gate();
+  const secondAnswered = gate();
+  let deleteRequests = 0;
+  await page.route(DELETE_REQUEST, async (route) => {
+    deleteRequests += 1;
+    if (deleteRequests === 1) {
+      await firstRefused.opened;
+      await route.abort();
+    } else {
+      await secondAnswered.opened;
+      await route.continue();
+    }
+  });
+  let listRequests = 0;
+  page.on("request", (sent) => {
+    if (LIST_REQUEST.test(sent.url())) listRequests += 1;
+  });
+
+  const firstSent = page.waitForRequest(DELETE_REQUEST);
+  await confirmDelete(page, refused);
+  await firstSent;
+  const secondSent = page.waitForRequest(DELETE_REQUEST);
+  await confirmDelete(page, pending);
+  await secondSent;
+  await expect(taskRow(page, refused)).toHaveCount(0);
+  await expect(taskRow(page, pending)).toHaveCount(0);
+
+  firstRefused.open();
+  await expect(page.getByText("The task could not be deleted.")).toBeVisible();
+  await expect(taskRow(page, refused)).toHaveCount(1);
+  // The second delete is still held. Its row stays out and the list has not
+  // been fetched again.
+  await expect(taskRow(page, pending)).toHaveCount(0);
+  expect(listRequests).toBe(0);
+
+  const revalidated = page.waitForResponse(LIST_REQUEST);
+  secondAnswered.open();
+  await expect(page.getByText("Task deleted.")).toBeVisible();
+  await revalidated;
+  expect(listRequests).toBe(1);
+
+  await page.reload();
+  await expect(taskRow(page, refused)).toHaveCount(1);
+  await expect(taskRow(page, pending)).toHaveCount(0);
+});
+
+test("deleting while offline brings the row back with the connection message", async ({
+  page,
+  request,
+  context,
+  allowError,
+}) => {
+  // The browser logs the delete that cannot leave, and Next.js logs the
+  // prefetch of the restored row's edit link.
+  allowError(/ERR_INTERNET_DISCONNECTED|ERR_FAILED/);
+  allowError(/Failed to fetch RSC payload/);
+  const title = uniqueTitle("Offline");
+  await createTask(request, title);
+  await page.goto("/");
+  await expect(taskRow(page, title)).toHaveCount(1);
+
+  await context.setOffline(true);
+  await confirmDelete(page, title);
+
+  await expect(page.getByText("The task could not be deleted.")).toBeVisible();
+  await expect(page.getByText(/server could not be reached/)).toBeVisible();
+  await expect(taskRow(page, title)).toHaveCount(1);
+
+  await context.setOffline(false);
+  await page.reload();
+  await expect(taskRow(page, title)).toHaveCount(1);
+});
