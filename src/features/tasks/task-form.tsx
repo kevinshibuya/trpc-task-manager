@@ -59,9 +59,11 @@ export function TaskForm({
     setError,
     formState: { errors, isSubmitting },
   } = useForm<TaskInput, unknown, TaskFormValues>({
-    // The schema the server validates with, so both sides agree. The defaults
-    // already validate on submit, then again on every change.
+    // The schema the server validates with, so both sides agree. Each field
+    // is checked as it is typed, from the first keystroke; a field nobody has
+    // touched shows nothing until a submit.
     resolver: zodResolver(taskInput),
+    mode: "onChange",
     defaultValues: initialValues,
   });
 

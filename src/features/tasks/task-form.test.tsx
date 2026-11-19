@@ -50,6 +50,31 @@ describe("TaskForm", () => {
     expect(title).toHaveAttribute("aria-invalid", "false");
   });
 
+  it("shows the title's message as soon as it is typed past 120 characters, with no submit", async () => {
+    const onSave = vi.fn();
+    const { user, title } = renderForm(onSave);
+
+    await user.click(title);
+    await user.paste("a".repeat(120));
+    expect(title).toHaveAttribute("aria-invalid", "false");
+    await user.type(title, "a");
+
+    expect(
+      await screen.findByText("The title can have at most 120 characters."),
+    ).toBeInTheDocument();
+    expect(title).toHaveAttribute("aria-invalid", "true");
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("shows nothing on a title nobody has touched before a submit", async () => {
+    const { user, title, description } = renderForm(vi.fn());
+
+    await user.type(description, "Typed before the title.");
+
+    expect(screen.queryByText("Enter a title.")).not.toBeInTheDocument();
+    expect(title).toHaveAttribute("aria-invalid", "false");
+  });
+
   it("saves once, with trimmed values", async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const { user, title, description, submit } = renderForm(onSave);

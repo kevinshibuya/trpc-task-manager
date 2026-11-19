@@ -24,6 +24,20 @@ test("New task opens the form, which refuses an empty title and stays on the pag
   await expect(page).toHaveURL("/tasks/new");
 });
 
+test("a title over 120 characters shows its message as it is typed", async ({
+  page,
+}) => {
+  await page.goto("/tasks/new");
+  const save = page.getByRole("button", { name: "Create task" });
+  await expect(save).toBeEnabled();
+
+  await page.getByRole("textbox", { name: "Title" }).fill("a".repeat(150));
+
+  await expect(
+    page.getByText("The title can have at most 120 characters."),
+  ).toBeVisible();
+});
+
 test("creating a task returns to the list with a confirmation and no older task above it", async ({
   page,
   request,
