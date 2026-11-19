@@ -183,6 +183,23 @@ describe("TaskForm", () => {
     ).toHaveValue("Kitchen door.");
   });
 
+  it("keeps the submit button disabled in its server-rendered markup", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(
+      <TaskForm submitLabel="Create task" onSave={vi.fn()} />,
+    );
+
+    expect(
+      within(container).getByRole("button", { name: "Create task" }),
+    ).toBeDisabled();
+  });
+
+  it("enables the submit button once rendered in the browser", () => {
+    const { submit } = renderForm(vi.fn());
+
+    expect(submit).toBeEnabled();
+  });
+
   it("offers a way back to the list without saving", () => {
     render(<TaskForm submitLabel="Create task" onSave={vi.fn()} />);
 

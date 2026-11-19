@@ -59,7 +59,7 @@ export function TaskList() {
   // Here and not in the row, which leaves the list as soon as the delete starts.
   const { mutate: deleteTask } = useDeleteTask();
 
-  // The sentinel is on screen only while another page can be asked for.
+  // The sentinel is watched only while another page can be asked for.
   const sentinelRef = useRef<HTMLDivElement>(null);
   const canLoadMore =
     hasNextPage && !isFetchingNextPage && !isFetchNextPageError;
@@ -124,9 +124,7 @@ export function TaskList() {
         ))}
       </ItemGroup>
 
-      {isFetchingNextPage ? (
-        <TaskRowSkeletons />
-      ) : isFetchNextPageError ? (
+      {isFetchNextPageError ? (
         <Alert variant="destructive">
           <CircleAlertIcon />
           <AlertTitle>More tasks could not be loaded</AlertTitle>
@@ -142,7 +140,13 @@ export function TaskList() {
           </AlertAction>
         </Alert>
       ) : hasNextPage ? (
-        <div ref={sentinelRef} />
+        // The skeletons are in the server HTML too, so a person who scrolls to
+        // the end before the scripts load sees that more is coming. They stay
+        // while the page loads, and its rows take their place.
+        <div>
+          <div ref={sentinelRef} />
+          <TaskRowSkeletons />
+        </div>
       ) : null}
 
       {/* Present from the first render, so screen readers announce what

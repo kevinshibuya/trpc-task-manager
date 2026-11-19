@@ -13,6 +13,8 @@ The page also opts into dynamic rendering. In the App Router a route that reads 
 
 Writes go through the tRPC client, not Server Actions, because the brief asks for the CRUD operations to be exposed via tRPC.
 
+The server HTML can be read before its JavaScript has loaded, and on a slow connection that gap lasts seconds. When another page exists, the list ends with skeleton rows in the server HTML, so scrolling to the end in that gap shows that more is coming, and the next page loads as soon as the page hydrates. The form's Save button is disabled until hydration, because before it the browser would submit the form itself, reloading the page with the text in the address and saving nothing. Links and the other buttons stay as they are.
+
 ## Considered options
 
 - **Pages Router with `getServerSideProps`.** The most literal reading of "SSR". Rejected because the App Router is the default of current Next.js and the brief asks for the most recent versions.

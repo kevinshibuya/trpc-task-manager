@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { useHydrated } from "@/lib/use-hydrated";
 import { type TaskInput, taskInput } from "@/server/tasks/task";
 
 import { describeError } from "./describe-error";
@@ -42,6 +43,7 @@ export function TaskForm({
   onSave,
 }: TaskFormProps) {
   const id = useId();
+  const hydrated = useHydrated();
   const initialValues = {
     title: defaultValues?.title ?? "",
     description: defaultValues?.description ?? "",
@@ -137,7 +139,9 @@ export function TaskForm({
       </FieldGroup>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting}>
+        {/* Before hydration the browser would submit the form itself, which
+            reloads the page with the text in the address and saves nothing. */}
+        <Button type="submit" disabled={isSubmitting || !hydrated}>
           {isSubmitting ? <Spinner /> : null}
           {submitLabel}
         </Button>
