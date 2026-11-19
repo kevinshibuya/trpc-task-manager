@@ -18,9 +18,11 @@ export function CreateTaskForm() {
 
   async function save(values: TaskFormValues) {
     await createTask(values);
-    // The list page renders on the server again on the way back, and the
-    // cached pages are marked stale so the client does not keep the old ones.
-    await queryClient.invalidateQueries({ queryKey: trpc.task.list.pathKey() });
+    // The list page renders on the server again on the way back. Its fresh
+    // data replaces a cached list only after the first paint, so the old list
+    // would show and then jump. With the cached list removed, the first paint
+    // already comes from the server's data.
+    queryClient.removeQueries({ queryKey: trpc.task.list.pathKey() });
     toast.success("Task created.");
     router.push("/");
   }
