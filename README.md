@@ -132,8 +132,6 @@ For production I would change these things, roughly in this order:
 
 ## How this was built
 
-<!-- The author edits this section before the repository is published. -->
-
 I started with a design interview against the brief. It produced the [glossary](GLOSSARY.md) and the [decision records](docs/adr). From those I wrote the spec, which is [issue #1](../../issues/1). The work was split into tickets, each a sub-issue of the spec with its own verify gate: the commands that must pass before the ticket lands. A coding agent built each ticket in an isolated git worktree.
 
 The review step works like this. The pull request gets a review by models, and I check every finding by hand before merging.
